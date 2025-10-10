@@ -3,7 +3,9 @@
     <van-tabs v-model:active="active">
       <van-tab v-for="(item, idx) in pageList" :key="idx" :title="item.name">
         <div :class="$style.container">
-          <component v-if="active === idx" :is="item.component" />
+          <keep-alive>
+            <component v-if="active === idx" :is="item.component" />
+          </keep-alive>
         </div>
       </van-tab>
     </van-tabs>
@@ -14,11 +16,11 @@
       :style="{
         height: '90%',
         background: '#f7f8fa',
-        ...(props.popupStyle || {}),
+        ...(popupProps.popupStyle || {}),
       }"
     >
       <div :class="$style.titleBar">
-        <h3>{{ props.title }}</h3>
+        <h3>{{ popupProps.title }}</h3>
         <van-icon class="pointer" size="16" @click="hidePopup" name="revoke" />
       </div>
       <component
@@ -34,15 +36,20 @@
 
 <script lang="ts" setup>
 import { ref } from 'vue';
-import { providePopup } from '@/ui/js/hooks/usePopup';
-import Cut from '@/ui/pages/cut/index.vue';
-import ButtonSizeExpansion from '@/ui/pages/button-size-expansion/index.vue';
-import { MessageType, addMessageListener } from '@/messages';
-import useGlobalStore from '@/ui/store/useGlobalStore';
+import { providePopup } from './js/hooks/usePopup';
+import Cut from './pages/cut/index.vue';
+import ButtonSizeExpansion from './pages/button-size-expansion/index.vue';
+import { MessageType, addMessageListener } from '../messages';
+import useGlobalStore from './store/useGlobalStore';
 
 // 提供全局弹窗实例
 const { isVisible, component, props, listeners, hidePopup } =
   providePopup();
+
+// 局部类型断言，解决 TypeScript 类型检查问题
+type PopupProps = { title?: string; popupStyle?: Record<string, any> } & Record<string, any>;
+const popupProps = props as unknown as PopupProps;
+
 const globalStore = useGlobalStore();
 
 const active = ref(0);

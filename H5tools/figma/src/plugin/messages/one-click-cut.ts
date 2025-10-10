@@ -1,8 +1,13 @@
 import { createObject, cloneNode } from '../utils';
-import { MessageType } from '@/messages';
+import { MessageType } from '@messages';
 
-function handler(data) {
+function handler(data: any) {
   const selection = figma.currentPage.selection[0];
+  
+  if (!selection || !selection.absoluteBoundingBox) {
+    figma.notify('请选择一个有效的元素', { timeout: 2000 });
+    return;
+  }
 
   const {
     width: selectionWidth,

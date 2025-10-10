@@ -4,7 +4,11 @@ import {
   createObject,
   createImageFrame,
 } from './utils';
-import { FILL_RULE } from '@/config/rule';
+// 定义FILL_RULE常量
+const FILL_RULE = {
+  STRETCH: 'stretch',
+  FILL_COLOR: 'fillColor'
+};
 
 // 图层拓展核心函数，非必要不修改
 export const genExpandFrame = async ({

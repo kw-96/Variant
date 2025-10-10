@@ -1,4 +1,4 @@
-import { MessageType, sendMsgToUI } from '@/messages';
+import { MessageType, sendMsgToUI } from '@messages';
 
 async function handler({ _id, key, method, data }) {
   const res = await figma.clientStorage[method](

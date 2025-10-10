@@ -28,7 +28,7 @@ export const color16ToRgb = str => {
     }
     newStr = t;
   }
-  let arr = []; //将字符串分隔，两个两个的分隔
+  let arr: number[] = []; //将字符串分隔，两个两个的分隔
   for (var i = 0; i < 6; i = i + 2) {
     let s = newStr.slice(i, i + 2);
     arr.push(parseInt('0x' + s));

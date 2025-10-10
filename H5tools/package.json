@@ -1,0 +1,20 @@
+{
+  "name": "h5tools",
+  "version": "1.0.0",
+  "description": "H5tools - Design tools for Figma and MasterGo",
+  "private": true,
+  "scripts": {
+    "dev": "npm run dev:figma & npm run dev:mastergo",
+    "dev:figma": "cd figma && npm run dev",
+    "dev:mastergo": "cd mastergo && npm run dev",
+    "build": "npm run build:figma && npm run build:mastergo",
+    "build:figma": "cd figma && npm run build",
+    "build:mastergo": "cd mastergo && npm run build",
+    "lint": "npm run lint:src && npm run lint:figma && npm run lint:mastergo",
+    "lint:src": "cd src && npm run lint",
+    "lint:figma": "cd figma && npm run lint",
+    "lint:mastergo": "cd mastergo && npm run lint"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

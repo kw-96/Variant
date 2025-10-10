@@ -47,6 +47,7 @@ textarea,
 menu {
   padding: 0;
   margin: 0;
+  -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
 
@@ -59,6 +60,7 @@ body {
   font-family: 'Microsoft YaHei', Arial, '黑体', '宋体', sans-serif;
   font-size: 14px;
   word-wrap: break-word;
+  -webkit-user-select: none;
   user-select: none;
   -webkit-overflow-scrolling: touch;
   text-align: center;
@@ -302,6 +304,7 @@ em {
 html {
   box-sizing: border-box;
   font-size: 14px;
+  -webkit-text-size-adjust: none;
   text-size-adjust: none;
   -webkit-tap-highlight-color: transparent;
 }
@@ -349,14 +352,45 @@ button:focus {
 .clickable {
   cursor: pointer;
   transition: opacity 0.2s ease-out;
+}
 
-  // transition 如果加了 filter 动效，在弹窗时会有抖动
+/* transition 如果加了 filter 动效，在弹窗时会有抖动 */
 
-  &:hover {
-    filter: brightness(1.1);
-  }
+button:hover {
+  filter: brightness(1.1);
+}
 
-  &:active {
-    opacity: 0.8;
-  }
+button:active {
+  opacity: 0.8;
+}
+
+/* 自定义滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: #909090;
+}
+
+/* Firefox 滚动条样式 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 #f1f1f1;
 }

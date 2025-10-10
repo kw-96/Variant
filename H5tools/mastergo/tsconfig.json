@@ -7,6 +7,7 @@
     "moduleResolution": "node",
     "allowJs": false,
     "strict": true,
+    "forceConsistentCasingInFileNames": true,
     "noUnusedLocals": true,
     "resolveJsonModule": true,
     "esModuleInterop": true,
@@ -15,19 +16,28 @@
     "importHelpers": true,
     "lib": ["esnext", "dom"],
     "types": [
-      "@mastergo/plugin-typings"
+      "@mastergo/plugin-typings",
+      "node"
     ],
     "paths": {
-      "@lib/*": ["./lib/*"],
-      "@ui/*": ["./ui/*"],
-      "@messages/*": ["./messages/*"],
-    },
+      "@lib/*": ["./src/plugin/*"],
+      "@ui/*": ["../src/ui/*"],
+      "@messages/*": ["../src/messages/*"],
+      "@/*": ["../src/*"],
+      "@/plugin/*": ["./src/plugin/*"],
+      "@/messages/*": ["../src/messages/*"],
+      "@/config/*": ["../src/config/*"]
+    }
   },
   "include": [
-    "./ui/**/*.ts",
-    "./ui/**/*.vue",
-    "./typings/*.d.ts",
-    "./lib/**/*.ts",
-    "./messages/**/*.ts",
+    "./src/**/*.ts",
+    "./src/**/*.vue",
+    "../src/ui/**/*.ts",
+    "../src/ui/**/*.vue",
+    "./typings/*.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
   ]
 }

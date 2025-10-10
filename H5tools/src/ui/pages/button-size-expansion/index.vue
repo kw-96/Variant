@@ -38,20 +38,20 @@
 
 <script lang="ts" setup>
 import { ref } from 'vue';
-import { MessageType, sendMsgToPlugin } from '@/messages';
-import SizeConfig from '@/ui/components/size-config.vue';
+import { MessageType, sendMsgToPlugin } from '../../../messages';
+import SizeConfig from '../../components/size-config.vue';
 import Setting from './setting.vue';
-import { usePopup } from '@/ui/js/hooks/usePopup';
-import { STORAGE_KEY } from '@/ui/js/config/constant';
-import { getDefaultExpandData } from '@/ui/js/setting/button-size-expansion';
-import useSetting from '@/ui/js/hooks/useSetting';
+import { usePopup } from '../../js/hooks/usePopup';
+import { STORAGE_KEY } from '../../js/config/constant';
+import { getDefaultExpandData } from '../../js/setting/button-size-expansion';
+import useSetting from '../../js/hooks/useSetting';
 
 const { settingData, saveSettingData } = useSetting(
   STORAGE_KEY.BUTTON_SIZE_EXPANSION_SETTING,
   getDefaultExpandData
 );
-const { showPopup } = usePopup();
-const activeConfig = ref(null);
+const { showPopup } = usePopup() as any;
+const activeConfig = ref<any>(null);
 
 const showConfig = () => {
   showPopup(
@@ -68,10 +68,11 @@ const showConfig = () => {
   );
 };
 
-const sizeConfigRef = ref(null);
+const sizeConfigRef = ref<any>(null);
 
 const confirm = () => {
-  const sizes = sizeConfigRef.value.getValues().map(item => {
+  if (!sizeConfigRef.value) return;
+  const sizes = sizeConfigRef.value.getValues().map((item: any) => {
     return {
       width: item.width,
       height: item.height,
@@ -85,13 +86,14 @@ const confirm = () => {
 };
 
 const onPreview = () => {
+  if (!sizeConfigRef.value) return;
   sendMsgToPlugin(MessageType.GEN_BUTTON_PREVIEW, {
     config: settingData.value,
     sizes: sizeConfigRef.value.getValues(),
   });
 }
 
-const onUpdate = val => {
+const onUpdate = (val: any) => {
   activeConfig.value = val;
 };
 </script>
@@ -108,6 +110,4 @@ const onUpdate = val => {
   }
 }
 
-.setting {
-}
 </style>

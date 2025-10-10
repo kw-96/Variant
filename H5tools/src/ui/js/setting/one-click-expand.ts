@@ -1,4 +1,4 @@
-import { FILL_RULE, HEAD_PIC_EXPAND_RULE } from '@/config/rule';
+import { FILL_RULE, HEAD_PIC_EXPAND_RULE } from '../../../config/rule';
 
 export const getExpandRules = () => {
   return {

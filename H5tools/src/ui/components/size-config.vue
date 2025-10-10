@@ -4,7 +4,7 @@
       <!-- 渲染配置按钮 -->
       <van-button
         :class="$style.vanButton"
-        v-for="(config, idx) in configs"
+        v-for="(config) in configs"
         :key="config.id"
         :type="activeConfig.id === config.id ? 'primary' : 'default'"
         size="small"
@@ -43,11 +43,11 @@
 </template>
 
 <script lang="ts" setup>
-import { useStandardConfigs } from '@/ui/js/hooks/useStandardConfigs';
-import AddSizeConfig from '@/ui/components/add-size-config.vue';
-import StandardSize from '@/ui/components/standard-size.vue';
-import { usePopup } from '@/ui/js/hooks/usePopup';
-import { onMounted, watch } from 'vue';
+import { useStandardConfigs } from '../js/hooks/useStandardConfigs';
+import AddSizeConfig from './add-size-config.vue';
+import StandardSize from './standard-size.vue';
+import { usePopup } from '../js/hooks/usePopup';
+import { watch } from 'vue';
 
 // Props
 const props = defineProps({
@@ -72,13 +72,12 @@ const props = defineProps({
 const emit = defineEmits(['update:activeConfig']);
 
 // Popup
-const { showPopup } = usePopup();
+const { showPopup } = usePopup() as any;
 
 // Hooks: 优先使用传入的 configs，否则从 storage 获取
 const {
   configs,
   activeConfig,
-  isExternalConfig,
   switchPlatform,
   addStandard,
   removeStandard,

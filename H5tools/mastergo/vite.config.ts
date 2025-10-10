@@ -14,15 +14,18 @@ export default defineConfig(() => {
         cssCodeSplit: false,
         brotliSize: false,
         rollupOptions: {
+          input: resolve(__dirname, 'index.html'),
           inlineDynamicImports: true,
           output: {
             manualChunks: () => "ui.js",
           },
         },
+        outDir: 'dist',
+        emptyOutDir: true,
       }
     : {
       lib: {
-        entry: resolve(__dirname, './lib/main.ts'),
+        entry: resolve(__dirname, './src/plugin/index.ts'),
         name: 'myLib',
         formats: ['umd'],
         fileName: () => `main.js`
@@ -40,9 +43,10 @@ export default defineConfig(() => {
     },
     resolve: {
       alias: {
-        "@lib": resolve(__dirname, './lib'),
-        "@ui": resolve(__dirname, './ui'),
-        "@messages": resolve(__dirname, './messages'),
+        "@lib": resolve(__dirname, './src/plugin'),
+        "@ui": resolve(__dirname, '../src/ui'),
+        "@messages": resolve(__dirname, '../src/messages'),
+        "@": resolve(__dirname, '../src'),
       }
     },
   }

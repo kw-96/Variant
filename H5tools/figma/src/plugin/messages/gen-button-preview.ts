@@ -1,5 +1,5 @@
-import { MessageType } from '@/messages';
-import { genPreviewFrame } from '@/plugin/core';
+import { MessageType } from '@messages';
+import { genPreviewFrame } from '../core';
 import { clearPreview } from '../utils';
 
 function handler(data) {

@@ -1,4 +1,4 @@
-import { MessageType, sendMsgToPlugin, addMessageListener } from '@/messages';
+import { MessageType, sendMsgToPlugin, addMessageListener } from '../../messages';
 import { generateRandomId } from './utils';
 
 export default {

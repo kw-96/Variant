@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-import storage from '@/ui/js/storage';
+import storage from '../storage';
 
 export default function useSetting<T>(storageKey: string, getDefaultSetting) {
   const settingData = ref();

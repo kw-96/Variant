@@ -2,21 +2,34 @@
 // the *figma document* via the figma global object.
 // You can access browser APIs in the <script> tag inside "ui.html" which has a
 // full browser environment (See https://www.figma.com/plugin-docs/how-plugins-run).
-import { addMessageListener, sendMsgToUI, MessageType } from '@/messages';
+import { addMessageListener, sendMsgToUI, MessageType } from '../../../src/messages';
 
-const messages = []
-const messagesContext = require.context('./messages', false, /\.ts$/)
-messagesContext.keys().forEach(key => {
-  messages.push(messagesContext(key).default)
-})
+// 手动导入所有消息处理器
+import autoGenerateButtons from './messages/auto-generate-buttons';
+import clientStorage from './messages/client-storage';
+import genButtonPreview from './messages/gen-button-preview';
+import genExpandPreview from './messages/gen-expand-preview';
+import oneClickCut from './messages/one-click-cut';
+import oneClickExpand from './messages/one-click-expand';
 
-// Runs this code if the plugin is run in Figma
-if (figma.editorType === 'figma') {
+const messages = [
+  autoGenerateButtons,
+  clientStorage,
+  genButtonPreview,
+  genExpandPreview,
+  oneClickCut,
+  oneClickExpand,
+];
+
+// Runs this code if (globalThis as any).figma exists and is running in Figma
+if (typeof (globalThis as any).figma !== 'undefined' && (globalThis as any).figma.editorType === 'figma') {
+  const figma = (globalThis as any).figma;
+
   // This plugin will open a window to prompt the user to enter a number, and
   // it will then create that many rectangles on the screen.
 
   // This shows the HTML page in "ui.html".
-  figma.showUI(__html__);
+  figma.showUI('index.html');
 
   figma.ui.resize(400, 667);
 

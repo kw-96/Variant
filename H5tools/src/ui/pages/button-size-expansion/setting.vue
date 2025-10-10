@@ -6,10 +6,10 @@
 
       <van-cell-group :class="$style.inset">
         <van-cell title="左">
-          <van-stepper input-width="80" v-model="settingData.paddingLeft" />
+          <van-stepper input-width="80" v-model="props.settingData.paddingLeft" />
         </van-cell>
         <van-cell title="右">
-          <van-stepper input-width="80" v-model="settingData.paddingRight" />
+          <van-stepper input-width="80" v-model="props.settingData.paddingRight" />
         </van-cell>
       </van-cell-group>
     </div>
@@ -30,8 +30,12 @@
 </template>
 
 <script lang="ts" setup>
-defineProps({
-  settingData: Object,
+const props = defineProps({
+  settingData: {
+    type: Object,
+    required: true,
+    default: () => ({})
+  },
 });
 
 const emit = defineEmits(['onSave', 'close']);

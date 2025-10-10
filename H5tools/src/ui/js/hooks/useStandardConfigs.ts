@@ -1,6 +1,7 @@
 import { ref, watch, onMounted } from 'vue';
 import { watchDebounced } from '@vueuse/core';
-import storage from '@/ui/js/storage';
+import { showConfirmDialog } from 'vant';
+import storage from '../storage';
 
 const updateFlag = ref(false);
 
@@ -21,7 +22,6 @@ export function useStandardConfigs(
   watch(
     () => updateFlag.value,
     flag => {
-      console.log('flag', flag);
       if (flag) {
         initData();
       }
@@ -74,7 +74,7 @@ export function useStandardConfigs(
   };
 
   // 删除规范
-  const removeStandard = async item => {
+  const removeStandard = async (item: any) => {
     const confirmed = await showConfirmDialog({
       title: '提示',
       message: '确认要删除当前选中的规范吗？',
@@ -82,7 +82,6 @@ export function useStandardConfigs(
 
     if (confirmed) {
       const index = configs.value.findIndex(config => config.id === item.id);
-      console.log(index);
       configs.value.splice(index, 1);
       activeConfig.value = configs.value[0] || null;
       saveData(configs.value);

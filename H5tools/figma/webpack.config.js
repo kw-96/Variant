@@ -50,6 +50,7 @@ const commonConfig = (env, argv) => ({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, '../src'),
+      '@messages': path.resolve(__dirname, '../src/messages'),
     },
     extensions: ['.tsx', '.ts', '.jsx', '.js', '.mjs'],
   },

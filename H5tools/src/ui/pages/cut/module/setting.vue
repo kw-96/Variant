@@ -6,7 +6,7 @@
       <h4>首图</h4>
       <van-dropdown-menu>
         <van-dropdown-item
-          v-model="settingData.firstPic.expandRule"
+          v-model="props.settingData.firstPic.expandRule"
           :options="expandRules.firstPic.rules"
         />
       </van-dropdown-menu>
@@ -15,16 +15,16 @@
           [
             HEAD_PIC_EXPAND_RULE.FILL_BOTTOM_COLOR,
             HEAD_PIC_EXPAND_RULE.FILL_TOP_COLOR,
-          ].includes(settingData.firstPic.expandRule)
+          ].indexOf(props.settingData.firstPic.expandRule) !== -1
         "
-        v-model="settingData.firstPic.fillColor"
+        v-model="props.settingData.firstPic.fillColor"
         label="选择扩展色块"
         type="color"
         :class="$style.color"
       />
       <van-field
         v-else
-        v-model="settingData.firstPic.lockNum"
+        v-model="props.settingData.firstPic.lockNum"
         label="拉伸区域（px）"
         type="digit"
         :min="1"
@@ -33,7 +33,7 @@
       <h4>其他</h4>
       <h5>头部</h5>
       <van-field
-        v-model="settingData.otherPic.header.lockRatio"
+        v-model="props.settingData.otherPic.header.lockRatio"
         label="固定不裁剪比例（0～1）"
         type="number"
         :max="1"
@@ -42,13 +42,13 @@
       <h5>中部</h5>
       <van-dropdown-menu>
         <van-dropdown-item
-          v-model="settingData.otherPic.body.expandRule"
+          v-model="props.settingData.otherPic.body.expandRule"
           :options="expandRules.otherPic.body.rules"
         />
       </van-dropdown-menu>
       <van-field
-        v-if="settingData.otherPic.body.expandRule === FILL_RULE.FILL_COLOR"
-        v-model="settingData.otherPic.body.fillColor"
+        v-if="props.settingData.otherPic.body.expandRule === FILL_RULE.FILL_COLOR"
+        v-model="props.settingData.otherPic.body.fillColor"
         label="选择扩展色块"
         type="color"
         :class="$style.color"
@@ -56,7 +56,7 @@
       <h5>底部</h5>
 
       <van-field
-        v-model="settingData.otherPic.footer.lockRatio"
+        v-model="props.settingData.otherPic.footer.lockRatio"
         label="固定不裁剪比例（0～1）"
         type="number"
         :max="1"
@@ -76,11 +76,26 @@
 
 <script lang="ts" setup>
 import { ref } from 'vue';
-import { FILL_RULE, HEAD_PIC_EXPAND_RULE } from '@/config/rule';
-import { getExpandRules } from '@/ui/js/setting/one-click-expand';
+import { FILL_RULE, HEAD_PIC_EXPAND_RULE } from '../../../../config/rule';
+import { getExpandRules } from '../../../js/setting/one-click-expand';
 
-defineProps({
-  settingData: Object,
+const props = defineProps({
+  settingData: {
+    type: Object,
+    required: true,
+    default: () => ({
+      firstPic: {
+        expandRule: '',
+        fillColor: '#000000',
+        lockNum: 0
+      },
+      otherPic: {
+        header: { lockRatio: 0 },
+        body: { expandRule: '', fillColor: '#000000' },
+        footer: { lockRatio: 0 }
+      }
+    })
+  },
 });
 
 const expandRules = getExpandRules();

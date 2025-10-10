@@ -72,10 +72,13 @@
 <script lang="ts" setup>
 import draggable from 'vuedraggable';
 import { computed } from 'vue';
-import { deepCopy } from '@/ui/js/utils';
+import { deepCopy } from '../js/utils';
 
 const props = defineProps({
-  config: Object,
+  config: {
+    type: Object,
+    default: () => ({ options: [] }),
+  },
   disabled: Boolean,
   editMode: {
     type: Boolean,
@@ -83,28 +86,31 @@ const props = defineProps({
   },
 });
 
+// 带默认值的可用配置对象（模板中可直接使用 config.options）
+const config = computed<any>(() => (props as any).config || { options: [] });
+
 const allChecked = computed(() => {
-  return (props.config?.options || []).every(item => item.checked);
+  return (config.value.options || []).every((item: any) => item.checked);
 });
 
 function onAllChecked() {
   if (allChecked.value) {
-    props.config.options.forEach(item => {
+    config.value.options.forEach((item: any) => {
       item.checked = false;
     });
   } else {
-    props.config.options.forEach(item => {
+    config.value.options.forEach((item: any) => {
       item.checked = true;
     });
   }
 }
 
-function oncopy(option, index) {
-  props.config.options.splice(index, 0, deepCopy(option));
+function oncopy(option: any, index: number) {
+  config.value.options.splice(index, 0, deepCopy(option));
 }
 
-function onDelete(option, index) {
-  props.config.options.splice(index, 1);
+function onDelete(option: any, index: number) {
+  config.value.options.splice(index, 1);
 }
 </script>
 
@@ -116,8 +122,6 @@ function onDelete(option, index) {
   border-radius: 12px;
 
   .list {
-    max-height: 420px;
-    overflow: auto;
     padding-right: 6px;
   }
 }

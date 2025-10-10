@@ -1,26 +1,30 @@
-import { MessageType } from '@/messages';
-import { genExpandFrame } from '@/plugin/core';
-import { FILL_RULE } from '@/config/rule';
+import { MessageType } from '../../../../src/messages';
+import { genExpandFrame } from '../core';
+// 定义FILL_RULE常量
+const FILL_RULE = {
+  STRETCH: 'stretch',
+  FILL_COLOR: 'fillColor'
+};
 import { deepMerge } from '../utils';
 
-async function handler(data) {
+async function handler(data: any) {
   const loadingNotification = figma.notify('正在处理中，请稍候...', {
     timeout: 10 * 1000,
   });
 
   const { options, expandData } = data;
-  const nodes = Array.from(figma.currentPage.selection).sort((a, b) => {
+  const nodes = Array.from(figma.currentPage.selection).sort((a: any, b: any) => {
     return Number(a.getPluginData('index')) - Number(b.getPluginData('index'));
   });
 
   const position = {
-    x: nodes[0].x + nodes[0].width + 50,
-    y: nodes[0].y,
+    x: (nodes[0] as any).x + (nodes[0] as any).width + 50,
+    y: (nodes[0] as any).y,
   };
 
   let cumulativeY = position.y;
 
-  await nodes.reduce(async (promise, node) => {
+  await nodes.reduce(async (promise: any, node: any) => {
     await promise;
 
     const index = node.getPluginData('index');
@@ -28,7 +32,7 @@ async function handler(data) {
 
     if (!option) return;
 
-    let config;
+    let config: any;
 
     if (Number(index) == 0) {
       config = {

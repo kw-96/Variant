@@ -9,17 +9,69 @@
 - 🔄 **多平台支持** - 同时支持 Figma 和 MasterGo 平台
 - 🏗️ **共用前端架构** - Figma和MasterGo版本共用同一套前端界面
 - 🔌 **平台适配层** - 通过适配层实现跨平台兼容
-- 📦 **模块化架构** - 每个工具独立开发和部署
+- 📦 **统一依赖管理** - ChannelFlex和H5tools共用所有依赖
+- 🚀 **Monorepo架构** - 使用workspace管理多个子项目
 - 🔧 **完善的开发工具配置**
 - 📚 **详细的文档说明**
 
 ## 技术栈
 
 - **前端框架**: Vue 3 + TypeScript
-- **构建工具**: Webpack 5
+- **构建工具**: Webpack 5 (Figma) + Vite (MasterGo)
 - **UI组件库**: Vant UI
 - **CSS预处理器**: Less
 - **代码规范**: ESLint + Prettier
+- **依赖管理**: npm workspaces
+- **状态管理**: Pinia
+- **拖拽功能**: vuedraggable
+- **工具库**: VueUse
+- **Excel处理**: xlsx
+
+## 技术特性
+
+### 🏗️ 架构设计
+
+- **Monorepo架构**：使用npm workspaces统一管理多个子项目
+- **跨平台兼容**：同一套前端代码适配Figma和MasterGo两个平台
+- **模块化设计**：清晰的目录结构和组件划分
+- **类型安全**：全面使用TypeScript确保代码质量
+
+### 🎨 UI/UX特性
+
+- **现代化界面**：基于Vant UI组件库的移动端设计
+- **响应式布局**：适配不同尺寸的设计工具窗口
+- **自定义滚动条**：美观的滚动条样式提升用户体验
+- **数据持久化**：标签页切换时保持数据状态
+
+### 🔧 开发体验
+
+- **热重载**：开发模式下实时预览代码变更
+- **代码规范**：ESLint + Prettier确保代码一致性
+- **构建优化**：Webpack 5 + Vite双构建工具优化
+- **调试友好**：详细的日志和错误提示
+
+## 快速开始
+
+### 🚀 5分钟快速体验
+
+1. **克隆并安装**
+
+   ```bash
+   git clone https://github.com/kw-96/Variant.git
+   cd Variant
+   npm run install:all
+   ```
+
+2. **构建H5tools**
+
+   ```bash
+   npm run build:h5tools:mastergo
+   ```
+
+3. **在MasterGo中测试**
+   - 打开MasterGo桌面应用
+   - 导入 `H5tools/mastergo/dist` 目录
+   - 体验H5一键切图和按钮尺寸拓展功能
 
 ## 开发指南
 
@@ -42,29 +94,55 @@
 2. **安装依赖**
 
    ```bash
+   # 一键安装所有依赖（推荐）
+   npm run install:all
+   
+   # 或者手动安装
    npm install
    ```
 
 3. **开发模式**
 
    ```bash
-   # 开发 ChannelFlex Figma 版本
+   # 启动所有工具和平台
+   npm run dev
+   
+   # 启动特定工具
+   npm run dev:channelflex    # ChannelFlex所有平台
+   npm run dev:h5tools        # H5tools所有平台
+   
+   # 启动特定工具特定平台
    npm run dev:channelflex:figma
-   
-   # 开发 ChannelFlex MasterGo 版本
    npm run dev:channelflex:mastergo
-   
-   # 开发 H5tools Figma 版本
    npm run dev:h5tools:figma
-   
-   # 开发 H5tools MasterGo 版本
    npm run dev:h5tools:mastergo
    ```
 
 4. **构建项目**
 
    ```bash
+   # 构建所有工具的所有版本
    npm run build
+   
+   # 构建特定工具的所有版本
+   npm run build:channelflex    # ChannelFlex的Figma和MasterGo版本
+   npm run build:h5tools        # H5tools的Figma和MasterGo版本
+   
+   # 构建特定工具的特定版本
+   npm run build:channelflex:figma      # ChannelFlex Figma版本
+   npm run build:channelflex:mastergo   # ChannelFlex MasterGo版本
+   npm run build:h5tools:figma          # H5tools Figma版本
+   npm run build:h5tools:mastergo       # H5tools MasterGo版本
+   ```
+
+5. **代码检查**
+
+   ```bash
+   # 检查所有代码
+   npm run lint
+   
+   # 清理所有依赖
+   npm run clean
    ```
 
 ## 工具介绍
@@ -82,33 +160,172 @@
 
 ### H5tools
 
-- **功能描述**：专业的H5页面设计工具，提供丰富的交互组件和模板
+- **功能描述**：专业的H5页面设计工具，专注于移动端H5页面的快速设计和开发
 - **支持平台**：Figma、MasterGo
 - **架构说明**：Figma版本和MasterGo版本共用同一套前端界面，通过平台适配层实现跨平台兼容
 - **主要特性**：
-  - H5页面快速搭建
-  - 丰富的组件库
-  - 交互效果预览
-  - 代码生成和导出
+  - **H5一键切图**：智能识别设计稿中的元素，一键生成多尺寸切图
+  - **按钮尺寸拓展**：根据设计规范自动生成不同尺寸的按钮变体
+  - **规范配置管理**：支持导入Excel配置文件，管理设计规范
+  - **实时预览**：在设计过程中实时预览生成效果
+  - **批量操作**：支持批量处理多个元素，提高工作效率
+
+## 功能演示
+
+### H5tools 使用场景
+
+#### 🎯 H5一键切图
+
+- **场景**：设计师需要为不同设备生成多尺寸的切图
+- **操作**：选择设计元素 → 配置尺寸规范 → 一键生成切图
+- **效果**：自动生成适配不同屏幕尺寸的切图文件
+
+#### 📱 按钮尺寸拓展
+
+- **场景**：根据设计规范生成不同尺寸的按钮变体
+- **操作**：选择按钮元素 → 设置拓展规则 → 批量生成按钮
+- **效果**：自动生成符合设计规范的按钮尺寸变体
+
+#### 📊 规范配置管理
+
+- **场景**：团队需要统一的设计规范和尺寸标准
+- **操作**：导入Excel配置文件 → 管理规范设置 → 应用到设计流程
+- **效果**：确保设计输出的一致性和规范性
 
 ## 项目结构
 
-```
+```t
 Variant/
-├── channelflex/         # ChannelFlex 工具目录
-│   ├── src/            # 共用前端界面源码
-│   ├── figma/          # Figma 平台适配层
-│   └── mastergo/       # MasterGo 平台适配层
-├── h5tools/            # H5tools 工具目录
-│   ├── src/            # 共用前端界面源码
-│   ├── figma/          # Figma 平台适配层
-│   └── mastergo/       # MasterGo 平台适配层
-├── shared/             # 共享组件和工具
-├── docs/               # 文档目录
-├── tests/              # 测试文件
-├── logs/               # 日志文件
-└── README.md           # 项目说明
+├── package.json              # 🎯 根目录：统一管理所有依赖
+├── ChannelFlex/              # ChannelFlex 工具目录
+│   ├── src/                  # 共用前端界面源码
+│   │   └── package.json      # 仅包含lint脚本
+│   ├── figma/                # Figma 平台适配层
+│   │   ├── src/
+│   │   │   ├── plugin/       # Figma插件逻辑
+│   │   │   └── messages/      # Figma消息通信
+│   │   ├── manifest.json     # Figma插件配置
+│   │   ├── webpack.config.js # Figma构建配置
+│   │   └── package.json      # 仅包含Figma特定依赖
+│   └── mastergo/             # MasterGo 平台适配层
+│       ├── src/
+│       │   ├── plugin/       # MasterGo插件逻辑
+│       │   └── messages/     # MasterGo消息通信
+│       ├── manifest.json     # MasterGo插件配置
+│       ├── vite.config.ts    # MasterGo构建配置
+│       └── package.json      # 仅包含MasterGo特定依赖
+├── H5tools/                  # H5tools 工具目录
+│   ├── src/                  # 共用前端界面源码
+│   │   ├── ui/               # 用户界面
+│   │   │   ├── components/   # 组件库
+│   │   │   │   ├── standard-size.vue    # 规范尺寸配置组件
+│   │   │   │   ├── add-size-config.vue  # 添加尺寸配置组件
+│   │   │   │   └── size-config.vue      # 尺寸配置管理组件
+│   │   │   ├── pages/        # 页面组件
+│   │   │   │   ├── cut/                 # H5一键切图页面
+│   │   │   │   └── button-size-expansion/ # 按钮尺寸拓展页面
+│   │   │   ├── js/           # JavaScript逻辑
+│   │   │   │   ├── hooks/               # Vue组合式API钩子
+│   │   │   │   ├── storage/             # 数据存储管理
+│   │   │   │   └── utils/               # 工具函数
+│   │   │   ├── store/        # 状态管理（Pinia）
+│   │   │   └── styles/       # 样式文件
+│   │   │       ├── reset.css            # 重置样式
+│   │   │       └── common.less          # 通用样式
+│   │   ├── messages/         # 消息通信模块
+│   │   │   ├── message.ts               # 消息处理核心
+│   │   │   ├── messageType.ts           # 消息类型定义
+│   │   │   └── sender.ts                # 消息发送器
+│   │   ├── config/           # 配置文件
+│   │   └── package.json      # 仅包含lint脚本
+│   ├── figma/                # Figma 平台适配层
+│   │   ├── src/
+│   │   │   ├── plugin/       # Figma插件逻辑
+│   │   │   │   ├── index.ts             # 插件入口
+│   │   │   │   ├── core.ts              # 核心功能
+│   │   │   │   ├── utils.ts             # 工具函数
+│   │   │   │   └── messages/            # 消息处理器
+│   │   │   └── messages/     # Figma消息通信
+│   │   ├── manifest.json     # Figma插件配置
+│   │   ├── webpack.config.js # Figma构建配置
+│   │   ├── tsconfig.json     # TypeScript配置
+│   │   └── package.json      # 仅包含Figma特定依赖
+│   └── mastergo/             # MasterGo 平台适配层
+│       ├── src/
+│       │   ├── plugin/       # MasterGo插件逻辑
+│       │   │   ├── index.ts             # 插件入口
+│       │   │   ├── core.ts              # 核心功能
+│       │   │   ├── utils.ts             # 工具函数
+│       │   │   └── messages/            # 消息处理器
+│       │   └── messages/     # MasterGo消息通信
+│       ├── index.html        # MasterGo UI入口
+│       ├── manifest.json     # MasterGo插件配置
+│       ├── vite.config.ts    # MasterGo构建配置
+│       ├── tsconfig.json     # TypeScript配置
+│       └── package.json      # 仅包含MasterGo特定依赖
+├── docs/                     # 文档目录
+├── tests/                    # 测试文件
+├── logs/                     # 日志文件
+├── DEPENDENCIES.md           # 依赖管理指南
+└── README.md                 # 项目说明
 ```
+
+## 依赖管理
+
+Variant采用**项目根目录统一管理**的依赖架构，ChannelFlex和H5tools共用所有依赖：
+
+### 🎯 架构优势
+
+- **依赖统一管理**：避免版本冲突和重复安装
+- **磁盘空间节省**：减少node_modules重复
+- **维护性提升**：依赖版本在根目录统一控制
+- **开发效率**：一键安装和构建命令
+
+### 📦 安装方式
+
+```bash
+# 一键安装所有依赖（推荐）
+npm run install:all
+
+# 或者手动安装
+npm install
+```
+
+### 🔧 开发命令
+
+```bash
+# 启动所有工具的所有版本
+npm run dev
+
+# 启动特定工具的所有版本
+npm run dev:channelflex        # ChannelFlex的Figma和MasterGo版本
+npm run dev:h5tools           # H5tools的Figma和MasterGo版本
+
+# 启动特定工具的特定版本
+npm run dev:channelflex:figma      # ChannelFlex Figma版本
+npm run dev:channelflex:mastergo   # ChannelFlex MasterGo版本
+npm run dev:h5tools:figma          # H5tools Figma版本
+npm run dev:h5tools:mastergo       # H5tools MasterGo版本
+
+# 构建所有工具的所有版本
+npm run build
+
+# 构建特定工具的所有版本
+npm run build:channelflex     # ChannelFlex的Figma和MasterGo版本
+npm run build:h5tools         # H5tools的Figma和MasterGo版本
+
+# 构建特定工具的特定版本
+npm run build:channelflex:figma      # ChannelFlex Figma版本
+npm run build:channelflex:mastergo   # ChannelFlex MasterGo版本
+npm run build:h5tools:figma          # H5tools Figma版本
+npm run build:h5tools:mastergo       # H5tools MasterGo版本
+
+# 代码检查
+npm run lint                  # 检查所有代码
+npm run clean                 # 清理所有依赖
+```
+
+详细的依赖管理指南请查看 [DEPENDENCIES.md](DEPENDENCIES.md)
 
 ## 贡献指南
 

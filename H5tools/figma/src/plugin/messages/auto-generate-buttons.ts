@@ -1,4 +1,4 @@
-import { genExpandFrame } from '@/plugin/core';
+import { genExpandFrame } from '../core';
 
 const autoGenerateButtons = {
   type: 'autoGenerateButtons',

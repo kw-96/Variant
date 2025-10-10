@@ -37,6 +37,15 @@
           一键扩展
         </van-button>
       </template>
+      <template v-else>
+        <van-button
+          type="primary"
+          size="small"
+          disabled
+        >
+          请先选择元素
+        </van-button>
+      </template>
     </div>
   </div>
 
@@ -50,12 +59,12 @@
 <script lang="ts" setup>
 import { ref, watch } from 'vue';
 import Setting from './module/setting.vue';
-import { MessageType, sendMsgToPlugin } from '@/messages';
-import { getDefaultExpandData } from '@/ui/js/setting/one-click-expand';
-import useGlobalStore from '@/ui/store/useGlobalStore';
-import SizeConfig from '@/ui/components/size-config.vue';
-import { STORAGE_KEY } from '@/ui/js/config/constant';
-import useSetting from '@/ui/js/hooks/useSetting';
+import { MessageType, sendMsgToPlugin } from '../../../messages';
+import { getDefaultExpandData } from '../../js/setting/one-click-expand';
+import useGlobalStore from '../../store/useGlobalStore';
+import SizeConfig from '../../components/size-config.vue';
+import { STORAGE_KEY } from '../../js/config/constant';
+import useSetting from '../../js/hooks/useSetting';
 
 const { settingData, saveSettingData } = useSetting(
   STORAGE_KEY.CUT_SIZE_EXPANSION_SETTING,
