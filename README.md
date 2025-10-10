@@ -7,6 +7,8 @@
 - 🎨 **ChannelFlex** - 灵活的设计通道管理工具
 - 🛠️ **H5tools** - 专业的H5页面设计工具
 - 🔄 **多平台支持** - 同时支持 Figma 和 MasterGo 平台
+- 🏗️ **共用前端架构** - Figma和MasterGo版本共用同一套前端界面
+- 🔌 **平台适配层** - 通过适配层实现跨平台兼容
 - 📦 **模块化架构** - 每个工具独立开发和部署
 - 🔧 **完善的开发工具配置**
 - 📚 **详细的文档说明**
@@ -22,6 +24,7 @@
 ## 开发指南
 
 ### 环境要求
+
 - Node.js >= 16.0.0
 - npm >= 8.0.0
 - Figma Desktop App（用于 Figma 插件开发）
@@ -30,17 +33,20 @@
 ### 开发流程
 
 1. **克隆项目**
+
    ```bash
    git clone https://github.com/kw-96/Variant.git
    cd Variant
    ```
 
 2. **安装依赖**
+
    ```bash
    npm install
    ```
 
 3. **开发模式**
+
    ```bash
    # 开发 ChannelFlex Figma 版本
    npm run dev:channelflex:figma
@@ -56,6 +62,7 @@
    ```
 
 4. **构建项目**
+
    ```bash
    npm run build
    ```
@@ -63,8 +70,10 @@
 ## 工具介绍
 
 ### ChannelFlex
+
 - **功能描述**：灵活的设计通道管理工具，帮助设计师高效管理设计资源和工作流程
 - **支持平台**：Figma、MasterGo
+- **架构说明**：Figma版本和MasterGo版本共用同一套前端界面，通过平台适配层实现跨平台兼容
 - **主要特性**：
   - 设计通道的创建和管理
   - 资源组织和分类
@@ -72,8 +81,10 @@
   - 版本控制和同步
 
 ### H5tools
+
 - **功能描述**：专业的H5页面设计工具，提供丰富的交互组件和模板
 - **支持平台**：Figma、MasterGo
+- **架构说明**：Figma版本和MasterGo版本共用同一套前端界面，通过平台适配层实现跨平台兼容
 - **主要特性**：
   - H5页面快速搭建
   - 丰富的组件库
@@ -85,11 +96,14 @@
 ```
 Variant/
 ├── channelflex/         # ChannelFlex 工具目录
-│   ├── figma/          # Figma 版本
-│   └── mastergo/        # MasterGo 版本
+│   ├── src/            # 共用前端界面源码
+│   ├── figma/          # Figma 平台适配层
+│   └── mastergo/       # MasterGo 平台适配层
 ├── h5tools/            # H5tools 工具目录
-│   ├── figma/          # Figma 版本
-│   └── mastergo/       # MasterGo 版本
+│   ├── src/            # 共用前端界面源码
+│   ├── figma/          # Figma 平台适配层
+│   └── mastergo/       # MasterGo 平台适配层
+├── shared/             # 共享组件和工具
 ├── docs/               # 文档目录
 ├── tests/              # 测试文件
 ├── logs/               # 日志文件
