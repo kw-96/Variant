@@ -1,6 +1,6 @@
 import { MessageType } from '../../../../src/messages';
 import { genExpandFrame } from '../core';
-import { deepMerge } from '../utils';
+import { deepMerge } from '../../../../src/plugin/utils';
 
 // 定义FILL_RULE常量
 const FILL_RULE = {
@@ -11,7 +11,13 @@ const FILL_RULE = {
 // ==================== H5一键切图 - 一键扩展功能 ====================
 // 用于"H5一键切图"页面的"一键扩展"按钮
 // 将多个选中元素按表格数据扩展成不同尺寸
+// 注意：此功能已被禁用
 async function handler(data: any) {
+  // 功能已禁用，直接返回
+  mg.notify('此功能暂不可用', { timeout: 2000 });
+  return;
+  
+  // 以下代码保留但不会执行
   const loadingNotification = mg.notify('正在处理中，请稍候...', {
     timeout: 10 * 1000,
   });

@@ -1,37 +1,35 @@
 <template>
-  <div class="button-expansion p-4">
+  <div :class="$style['button-expansion']">
     <SizeConfig
       ref="sizeConfigRef"
       @update:activeConfig="onUpdate"
       :storageKey="STORAGE_KEY.BUTTON_SIZE"
     />
-    <div :class="$style.blocks" v-if="activeConfig">
-      <div :class="$style.operations">
-        <van-button
-          :class="$style.setting"
-          round
-          @click="showConfig"
-          size="small"
-        >
-          <van-icon name="setting-o" /> 扩展规则设置
-        </van-button>
-        <van-button
-          :class="$style.setting"
-          round
-          @click="onPreview"
-          type="primary"
-        >
-          预览
-        </van-button>
-        <van-button
-          :class="$style.setting"
-          round
-          @click="confirm"
-          type="primary"
-        >
-          扩展尺寸生成
-        </van-button>
-      </div>
+    
+    <div :class="$style.btns" v-if="activeConfig">
+      <van-button
+        type="default"
+        size="small"
+        icon="setting"
+        :class="$style['setting-btn']"
+        @click="showConfig"
+      >
+        设置
+      </van-button>
+      <van-button
+        type="primary"
+        size="small"
+        @click="onPreview"
+      >
+        预览
+      </van-button>
+      <van-button
+        type="primary"
+        size="small"
+        @click="confirm"
+      >
+        生成
+      </van-button>
     </div>
   </div>
 </template>
@@ -99,15 +97,23 @@ const onUpdate = (val: any) => {
 </script>
 
 <style lang="less" module>
-.blocks {
-  position: fixed;
-  width: 100%;
-  .operations {
-    display: flex;
-    align-items: center;
-    margin: 0 12px;
-    justify-content: space-between;
-  }
+.button-expansion {
+  padding-bottom: 40px;
 }
 
+.btns {
+  position: fixed;
+  left: 20px;
+  right: 20px;
+  bottom: 10px;
+
+  :global(.van-button):not(:first-child) {
+    margin-left: 8px;
+  }
+
+  .setting-btn {
+    position: absolute;
+    left: 0;
+  }
+}
 </style>

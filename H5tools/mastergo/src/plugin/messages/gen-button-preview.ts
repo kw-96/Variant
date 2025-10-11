@@ -1,6 +1,5 @@
 import { MessageType } from '../../../../src/messages';
 import { genPreviewFrame } from '../core';
-import { clearPreview } from '../utils';
 
 // ==================== 按钮尺寸拓展 - 预览功能 ====================
 // 用于"按钮尺寸拓展"页面的预览功能
@@ -14,7 +13,19 @@ function handler(data: any) {
 
   const { config } = data;
   const node = currentPage.selection[0];
-  if (clearPreview(node, 'preview_from_id')) return;
+  
+  // 清理之前的预览
+  let hasClear = false;
+  const children = currentPage.children;
+  // 使用 for 循环替代 forEach，避免 MasterGo API 兼容性问题
+  for (let i = children.length - 1; i >= 0; i--) {
+    const itemNode = children[i];
+    if (itemNode.getPluginData && itemNode.getPluginData('preview_from_id') === node.id) {
+      itemNode.remove();
+      hasClear = true;
+    }
+  }
+  if (hasClear) return;
 
   const frame = genPreviewFrame({
     node,

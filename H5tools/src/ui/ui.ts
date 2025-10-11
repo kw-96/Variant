@@ -25,6 +25,24 @@ import {
 import { createPinia } from 'pinia';
 import inputDblckckSelect from './js/directives/input-dblclick-select'
 
+// 应用主题
+function applyTheme(theme: string) {
+  console.log('Applying theme:', theme);
+  document.documentElement.setAttribute('data-theme', theme);
+}
+
+// 监听来自插件主线程的主题变化消息
+window.onmessage = (event) => {
+  const message = event.data.pluginMessage;
+  if (message && message.type === 'THEME_CHANGE') {
+    applyTheme(message.theme);
+  }
+};
+
+// 初始化主题（默认浅色）
+// 实际主题会在插件加载后由主线程发送过来
+applyTheme('light');
+
 const app = createApp(App);
 app.use(Icon);
 app.use(Tabs);

@@ -301,12 +301,41 @@ em {
   display: none;
 }
 
+/* 主题颜色变量 */
+:root {
+  /* 浅色模式（默认） */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f7f8fa;
+  --text-primary: #323233;
+  --text-secondary: #646566;
+  --border-color: #ebedf0;
+  --divider-color: #ececec;
+  --scrollbar-track: #f1f1f1;
+  --scrollbar-thumb: #c1c1c1;
+  --scrollbar-thumb-hover: #a8a8a8;
+}
+
+/* 深色模式 */
+html[data-theme='dark'] {
+  --bg-primary: #1e1e1e;
+  --bg-secondary: #2d2d2d;
+  --text-primary: #e1e1e1;
+  --text-secondary: #a0a0a0;
+  --border-color: #3a3a3a;
+  --divider-color: #3a3a3a;
+  --scrollbar-track: #2d2d2d;
+  --scrollbar-thumb: #4a4a4a;
+  --scrollbar-thumb-hover: #5a5a5a;
+}
+
 html {
   box-sizing: border-box;
   font-size: 14px;
   -webkit-text-size-adjust: none;
   text-size-adjust: none;
   -webkit-tap-highlight-color: transparent;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 *,
@@ -364,25 +393,25 @@ button:active {
   opacity: 0.8;
 }
 
-/* 自定义滚动条样式 */
+/* 自定义滚动条样式 - 使用主题变量 */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--scrollbar-track);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
+  background: var(--scrollbar-thumb);
   border-radius: 4px;
   transition: background 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+  background: var(--scrollbar-thumb-hover);
 }
 
 ::-webkit-scrollbar-thumb:active {
@@ -392,5 +421,5 @@ button:active {
 /* Firefox 滚动条样式 */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #c1c1c1 #f1f1f1;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }

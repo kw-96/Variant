@@ -65,6 +65,12 @@ try {
     sendMsgToUI(MessageType.SELECTION_CHANGE, currentPage ? currentPage.selection || [] : []);
   });
   
+  // 监听主题变化事件
+  mg.on('themechange', (theme: string) => {
+    console.log('Theme changed to:', theme);
+    mg.ui.postMessage({ type: 'THEME_CHANGE', theme });
+  });
+  
   // 立即发送初始选择状态
   const currentPage = (mg as any).document?.currentPage;
   if (currentPage) {

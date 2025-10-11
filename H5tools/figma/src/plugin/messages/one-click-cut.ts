@@ -1,4 +1,4 @@
-import { createObject, cloneNode } from '../utils';
+import { cloneNode } from '../../../../src/plugin/utils';
 import { MessageType } from '@messages';
 
 function handler(data: any) {
@@ -22,17 +22,18 @@ function handler(data: any) {
       return;
     }
 
-    const frame = createObject('createFrame', {
-      name: `${option.name || data.itemName}-${option.width}x${option.height}`,
-      x: selectionX + selectionWidth + 50,
-      y: selectionY + totalFramesHeight,
-      width: selectionWidth,
-      height: Math.min(
+    const frame = figma.createFrame();
+    frame.name = `${option.name || data.itemName}-${option.width}x${option.height}`;
+    frame.x = selectionX + selectionWidth + 50;
+    frame.y = selectionY + totalFramesHeight;
+    frame.resize(
+      selectionWidth,
+      Math.min(
         selectionHeight - totalFramesHeight,
         Math.floor((selectionWidth / option.width) * option.height)
-      ),
-      fills: [],
-    });
+      )
+    );
+    frame.fills = [];
 
     const clone = cloneNode(selection, {
       x: 0,

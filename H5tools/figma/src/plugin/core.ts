@@ -1,14 +1,41 @@
 import {
   color16ToRgb,
   cloneNode,
-  createObject,
-  createImageFrame,
-} from './utils';
+} from '../../../src/plugin/utils';
+
 // 定义FILL_RULE常量
 const FILL_RULE = {
   STRETCH: 'stretch',
   FILL_COLOR: 'fillColor'
 };
+
+// ==================== 辅助函数 ====================
+
+/**
+ * 创建图片帧
+ */
+async function createImageFrame(node: any) {
+  const bytes = await node.exportAsync({
+    format: 'PNG',
+    constraint: { type: 'SCALE', value: 1 },
+  });
+  const image = figma.createImage(bytes);
+  
+  const imageFrame = figma.createFrame();
+  imageFrame.x = node.x;
+  imageFrame.y = node.y;
+  imageFrame.resize(node.width, node.height);
+  imageFrame.fills = [
+    {
+      imageHash: image.hash,
+      scaleMode: 'CROP',
+      type: 'IMAGE',
+    },
+  ];
+
+  await new Promise(resolve => setTimeout(resolve, 150));
+  return imageFrame;
+}
 
 // 图层拓展核心函数，非必要不修改
 export const genExpandFrame = async ({

@@ -1,8 +1,8 @@
 <template>
-  <div>
-    <van-tabs v-model:active="active">
+  <div :class="$style.appContainer">
+    <van-tabs v-model:active="active" :class="$style.tabs">
       <van-tab v-for="(item, idx) in pageList" :key="idx" :title="item.name">
-        <div :class="$style.container">
+        <div :class="$style.tabContent">
           <keep-alive>
             <component v-if="active === idx" :is="item.component" />
           </keep-alive>
@@ -15,7 +15,7 @@
       position="bottom"
       :style="{
         height: '90%',
-        background: '#f7f8fa',
+        background: 'var(--bg-secondary)',
         ...(popupProps.popupStyle || {}),
       }"
     >
@@ -70,14 +70,40 @@ addMessageListener(MessageType.SELECTION_CHANGE, data => {
 </script>
 
 <style lang="less" module>
-.container {
-  padding-top: 12px;
+.appContainer {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tabs {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  
+  :global(.van-tabs__wrap) {
+    flex-shrink: 0;
+  }
+  
+  :global(.van-tabs__content) {
+    flex: 1;
+    overflow-y: auto;
+  }
+}
+
+.tabContent {
+  padding: 12px;
+  min-height: 100%;
 }
 
 .titleBar {
   display: flex;
   padding: 12px;
   justify-content: space-between;
-  border-bottom: 1px solid #ececec;
+  border-bottom: 1px solid var(--divider-color);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
 }
 </style>

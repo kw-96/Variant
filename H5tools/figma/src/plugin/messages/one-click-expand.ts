@@ -5,7 +5,7 @@ const FILL_RULE = {
   STRETCH: 'stretch',
   FILL_COLOR: 'fillColor'
 };
-import { deepMerge } from '../utils';
+import { deepMerge } from '../../../../src/plugin/utils';
 
 async function handler(data: any) {
   const loadingNotification = figma.notify('正在处理中，请稍候...', {

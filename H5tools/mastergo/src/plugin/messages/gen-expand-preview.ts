@@ -1,6 +1,5 @@
 import { MessageType } from '../../../../src/messages';
 import { genPreviewFrame } from '../core';
-import { clearPreview } from '../utils';
 
 // ==================== H5一键切图 - 预览功能 ====================
 // 用于"H5一键切图"页面的"预览"按钮
@@ -14,17 +13,25 @@ function handler(data: any) {
 
   const { sizes } = data;
   
-  // 调试: 查看传递的数据
-  console.log('Preview data:', data);
-  console.log('Sizes:', sizes);
-  
   if (!sizes || sizes.length === 0) {
     mg.notify('没有可预览的尺寸数据！');
     return;
   }
 
   const node = currentPage.selection[0];
-  if (clearPreview(node, 'preview_from_id')) return;
+  
+  // 清理之前的预览
+  let hasClear = false;
+  const children = currentPage.children;
+  // 使用 for 循环替代 forEach，避免 MasterGo API 兼容性问题
+  for (let i = children.length - 1; i >= 0; i--) {
+    const itemNode = children[i];
+    if (itemNode.getPluginData && itemNode.getPluginData('preview_from_id') === node.id) {
+      itemNode.remove();
+      hasClear = true;
+    }
+  }
+  if (hasClear) return;
 
   const frame = genPreviewFrame({ node, sizes, direction: 'vertical' });
   frame.setPluginData('preview_from_id', node.id);
