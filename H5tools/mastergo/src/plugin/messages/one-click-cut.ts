@@ -35,7 +35,13 @@ function handler(data: any) {
       frame.width = Number(option.width);
       frame.height = Number(option.height);
       frame.clipsContent = true; // 设置裁剪超出内容
-      frame.fills = []; // 透明背景
+      // MasterGo API 要求 fills 必须包含有效的颜色信息，设置透明填充
+      frame.fills = [
+        {
+          type: 'SOLID',
+          color: { r: 0, g: 0, b: 0, a: 0 }, // 完全透明
+        },
+      ];
       
       // 克隆选中元素
       const clone = selection.clone();
