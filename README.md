@@ -43,6 +43,13 @@
 - **自定义滚动条**：美观的滚动条样式提升用户体验
 - **数据持久化**：标签页切换时保持数据状态
 
+### 🧩 Shared UI（shared-ui）
+
+- 统一的 UI 组件与样式来源，供 ChannelFlex 与 H5tools 复用
+- 提供组件：`DataFileDropZone`、`ConfigSelector`、`DraggableList`
+- 提供 hooks：`usePopup`、`useSetting`、`useStandardConfigs`
+- 提供样式：`shared-ui/styles/index.css`（含 GitHub Light/Dark 主题变量与 Vant 覆盖）
+
 ### 🔧 开发体验
 
 - **热重载**：开发模式下实时预览代码变更
@@ -72,6 +79,27 @@
    - 打开MasterGo桌面应用
    - 导入 `H5tools/mastergo/dist` 目录
    - 体验H5一键切图和按钮尺寸拓展功能
+
+4. **在 H5tools 引用 shared-ui（本地路径）**
+
+   - 在 H5tools 中直接通过相对路径引用组件与样式（本仓库已按此方式接入）：
+
+   ```ts
+   // 入口样式（示例：H5tools/src/ui/ui.ts）
+   import '../../../shared-ui/styles/index.css';
+
+   // 组件与 hooks（示例）
+   import { ConfigSelector } from '../../../shared-ui';
+   import { providePopup } from '../../../shared-ui/hooks/usePopup';
+   import useSetting from '../../../shared-ui/hooks/useSetting';
+   ```
+
+   - 事件命名约定：
+     - `ConfigSelector`：`@add-config`、`@remove-config`、`@switch-platform`
+     - `DataFileDropZone`：`@files`、`@confirm`
+     - `DraggableList`：`@copy-item`、`@delete-item`、`@add-item`
+
+   - 空状态仅由 `ConfigSelector` 内部渲染 `<van-empty>`，上层请勿重复实现。
 
 ## 开发指南
 
@@ -170,6 +198,21 @@
   - **实时预览**：在设计过程中实时预览生成效果
   - **批量操作**：支持批量处理多个元素，提高工作效率
 
+#### 存储与消息约定（MasterGo）
+
+- UI 与主线程通过消息 `type: 'storage'` 进行数据读写：
+  - `data: { _id, key, method: 'getAsync' | 'setAsync' | 'deleteAsync' | 'keysAsync', data? }`
+  - 主线程使用 `mg.clientStorage[method](key, data)` 执行，并回传 `sendMsgToUI('storage', { _id, data })`
+- `shared-ui/utils/storage.ts` 已内置适配，确保：
+  - `type` 为小写 `'storage'`
+  - `setAsync` 使用 `JSON.parse(JSON.stringify(value))` 以避免 postMessage 深拷贝报错
+
+#### 主题与样式
+
+- 主题变量通过 `shared-ui/styles/index.css` 注入
+- 切换通过 `document.documentElement.setAttribute('data-theme', 'light' | 'dark')` 实现
+- 针对 Vant 组件的颜色覆盖已统一在样式中处理
+
 ## 功能演示
 
 ### H5tools 使用场景
@@ -197,6 +240,13 @@
 ```t
 Variant/
 ├── package.json              # 🎯 根目录：统一管理所有依赖
+├── shared-ui/                # 
+│   ├── components/           # 
+│   ├── directives/           # 
+│   ├── hooks/                # 
+│   ├── styles/               # 
+│   ├── types/                # 
+│   ├── utils/                # 
 ├── ChannelFlex/              # ChannelFlex 工具目录
 │   ├── src/                  # 共用前端界面源码
 │   │   └── package.json      # 仅包含lint脚本
@@ -268,6 +318,14 @@ Variant/
 ├── logs/                     # 日志文件
 ├── DEPENDENCIES.md           # 依赖管理指南
 └── README.md                 # 项目说明
+
+## 近期变更要点（与 shared-ui 接入相关）
+
+- 统一空状态：仅在 `ConfigSelector` 内部渲染 `<van-empty>`
+- 事件命名统一：`add-config/remove-config/switch-platform` 等
+- 存储消息类型统一为小写 `'storage'`
+- 修复 Excel 字段兼容：支持 `name/名称`、`w/宽度`、`h/高度`
+- 修复 UI 数据流：`size-config.vue` 直接使用 `useStandardConfigs` 返回的 `configs`
 ```
 
 ## 依赖管理

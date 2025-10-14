@@ -26,7 +26,8 @@
       "@/*": ["../src/*"],
       "@/plugin/*": ["./src/plugin/*"],
       "@/messages/*": ["../src/messages/*"],
-      "@/config/*": ["../src/config/*"]
+      "@/config/*": ["../src/config/*"],
+      "@shared-ui/*": ["../../shared-ui/*"]
     }
   },
   "include": [
@@ -34,6 +35,8 @@
     "./src/**/*.vue",
     "../src/ui/**/*.ts",
     "../src/ui/**/*.vue",
+    "../../shared-ui/**/*.ts",
+    "../../shared-ui/**/*.vue",
     "./typings/*.d.ts"
   ],
   "exclude": [

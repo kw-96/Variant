@@ -36,7 +36,7 @@
 
 <script lang="ts" setup>
 import { ref } from 'vue';
-import { providePopup } from './js/hooks/usePopup';
+import { providePopup } from '../../../shared-ui/hooks/usePopup';
 import Cut from './pages/cut/index.vue';
 import ButtonSizeExpansion from './pages/button-size-expansion/index.vue';
 import { MessageType, addMessageListener } from '../messages';

@@ -64,7 +64,7 @@ import { getDefaultExpandData } from '../../js/setting/one-click-expand';
 import useGlobalStore from '../../store/useGlobalStore';
 import SizeConfig from '../../components/size-config.vue';
 import { STORAGE_KEY } from '../../js/config/constant';
-import useSetting from '../../js/hooks/useSetting';
+import useSetting from '../../../../../shared-ui/hooks/useSetting';
 
 const { settingData, saveSettingData } = useSetting(
   STORAGE_KEY.CUT_SIZE_EXPANSION_SETTING,
@@ -115,7 +115,9 @@ function onExpandSetting() {
 
 function onSaveExpandData() {
   settingRef.value.show = false;
-  saveSettingData(settingData.value);
+  if (settingData.value) {
+    saveSettingData(settingData.value);
+  }
 }
 
 const onUpdate = val => {

@@ -1,34 +1,17 @@
 <template>
   <div>
-    <div :class="$style['excel-parser']">
-      <!-- 拖拽区域 -->
-      <div
-        :class="$style['drop-area']"
-        @dragover.prevent
-        @drop.prevent="onFileDrop"
-      >
-        <p v-if="!validFiles.length">请拖拽xlsx文件（支持多个）到此处</p>
-        <ul v-else>
-          <li v-for="(file, index) in validFiles" :key="index">
-            {{ file }}
-          </li>
-
-          <van-button
-            :class="$style.add"
-            @click="addConfigs"
-            size="small"
-            type="primary"
-          >
-            确认添加
-          </van-button>
-        </ul>
-      </div>
-    </div>
+    <DataFileDropZone
+      :class="$style['excel-parser']"
+      @files="onFileDrop"
+      @confirm="onConfirmImport"
+      :accept="['.xlsx']"
+      placeholder="请拖拽xlsx文件（支持多个）到此处"
+    />
     <SizeConfig
       :class="$style.container"
       :editMode="true"
-      :disabled="!!validFiles.length"
-      :configs="configs"
+      :disabled="false"
+      :configs="parsedConfigs"
       :storageKey="storageKey"
     />
   </div>
@@ -36,12 +19,13 @@
 
 <script lang="ts" setup>
 import * as XLSX from 'xlsx';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { showToast } from 'vant';
 import SizeConfig from './size-config.vue';
-import { generateRandomId } from '../js/utils/index';
+import { DataFileDropZone } from '../../../../shared-ui';
+import { generateRandomId } from '../../../../shared-ui/utils/common';
 
-const configs = ref<any[]>([]); // 保存所有导入的配置
+const parsedConfigs = ref<any[]>([]); // 保存所有导入的配置
 const validFiles = ref<string[]>([]); // 保存符合条件的 .xlsx 文件名
 const emit = defineEmits(['onSave', 'close']);
 
@@ -51,101 +35,73 @@ defineProps({
   },
 });
 
-const addConfigs = () => {
-  emit('onSave', configs.value);
+const onConfirmImport = () => {
+  // 确认导入，保存配置并关闭弹窗
+  emit('onSave', parsedConfigs.value);
   emit('close');
 };
 
-const onFileDrop = (event: DragEvent) => {
-  const files = event.dataTransfer?.files;
-  if (!files || files.length === 0) {
-    showToast('请上传xlsx格式文件');
-    return;
-  }
+const onFileDrop = (files: File[]) => {
+  validFiles.value = []; // 清空之前的文件名
+  parsedConfigs.value = []; // 清空之前的配置
 
-  const validFileNames: string[] = []; // 临时存储有效文件名
+  console.log('开始处理文件:', files.length);
 
-  // 遍历所有文件
-  Array.from(files).forEach((file: File) => {
-    if (!file.name.endsWith('.xlsx')) {
-      showToast(`${file.name}不是xlsx格式文件，已跳过`);
-      return;
-    }
+  // 使用 Promise.all 确保所有文件处理完成后再更新
+  const filePromises = files.map(file => {
+    return new Promise<void>((resolve) => {
+      if (file.name.endsWith('.xlsx')) {
+        validFiles.value.push(file.name);
+        const reader = new FileReader();
+        reader.onload = e => {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const json = XLSX.utils.sheet_to_json(worksheet);
 
-    validFileNames.push(file.name); // 保存有效文件名
+          console.log('Excel解析结果:', json);
 
-    const reader = new FileReader();
-    reader.onload = (e: ProgressEvent<FileReader>) => {
-      if (!e.target?.result) return;
-      const data = new Uint8Array(e.target.result as ArrayBuffer);
-      const workbook = XLSX.read(data, { type: 'array' });
-      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
-
-      // 解析数据
-      const result = rows.slice(1).map((row: any) => ({
-        id: generateRandomId(),
-        name: row[0],
-        width: row[1],
-        height: row[2],
-      }));
-
-      if (result.length > 0) {
-        // 将解析结果存入configs
-        configs.value.push({
-          options: result,
-          id: generateRandomId(),
-          platform: file.name.replace('.xlsx', '').trim(),
-        });
+          const newConfig = {
+            id: generateRandomId(),
+            platform: file.name.replace('.xlsx', ''),
+            options: json.map((item: any) => ({
+              id: generateRandomId(),
+              name: item['name'] || item['名称'],
+              width: item['w'] || item['宽度'],
+              height: item['h'] || item['高度'],
+              checked: false,
+            })),
+          };
+          
+          console.log('创建的新配置:', newConfig);
+          
+          // 将新配置添加到数组中
+          parsedConfigs.value.push(newConfig);
+          console.log('更新后的parsedConfigs:', parsedConfigs.value);
+          resolve();
+        };
+        reader.readAsArrayBuffer(file);
       } else {
-        showToast(`${file.name}没有可解析的数据`);
+        showToast('只支持.xlsx文件');
+        resolve();
       }
-    };
-
-    reader.readAsArrayBuffer(file);
+    });
   });
 
-  // 更新 validFiles 并显示提示
-  validFiles.value = validFileNames;
-  if (validFileNames.length > 0) {
-    showToast(`成功导入文件：${validFileNames.join(', ')}`);
-  }
+  // 等待所有文件处理完成
+  Promise.all(filePromises).then(() => {
+    console.log('所有文件处理完成，最终 parsedConfigs:', parsedConfigs.value);
+  });
 };
 </script>
 
 <style lang="less" module>
 .excel-parser {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
   padding: 12px;
 }
+
 .container {
   background: var(--bg-primary);
-}
-
-.add {
-  margin-top: 12px;
-}
-
-.drop-area {
-  width: 100%;
-  height: 200px;
-  border: 2px dashed var(--border-color);
-  border-radius: 6px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  color: var(--text-secondary);
-}
-
-.drop-area ul {
-  padding: 0;
-  list-style: none;
-}
-
-.drop-area li {
-  color: var(--text-primary);
 }
 </style>

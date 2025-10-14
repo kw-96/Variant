@@ -1,5 +1,4 @@
-import './styles/reset.css';
-import './styles/common.less';
+import '../../../shared-ui/styles/index.css';
 import 'vant/lib/index.css';
 
 import { createApp } from 'vue';
@@ -23,7 +22,7 @@ import {
   Empty
 } from 'vant';
 import { createPinia } from 'pinia';
-import inputDblckckSelect from './js/directives/input-dblclick-select'
+import inputDblclickSelect from '../../../shared-ui/directives/input-dblclick-select';
 
 // 应用主题
 function applyTheme(theme: string) {
@@ -69,7 +68,7 @@ app.use(CellGroup);
 app.use(Stepper);
 app.use(Empty);
 app.use(createPinia());
-app.directive('input-dblclick-select', inputDblckckSelect);
+app.directive('input-dblclick-select', inputDblclickSelect);
 
 
 setTimeout(() => {

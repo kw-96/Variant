@@ -40,7 +40,7 @@
       @click="onAddConfig"
       v-else-if="!editMode"
       image="network"
-      description="点击添加新配置"
+      description="点击添加新规范"
     />
   </div>
 </template>

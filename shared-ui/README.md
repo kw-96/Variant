@@ -42,22 +42,16 @@ shared-ui/
 
 ## 使用方法
 
-### 1. 安装依赖
-
-```bash
-npm install @variant/shared-ui
-```
-
-### 2. 导入样式
+### 1. 导入样式（本仓库内本地引用）
 
 ```typescript
-import '@variant/shared-ui/styles';
+import '../../shared-ui/styles/index.css';
 ```
 
-### 3. 使用组件
+### 2. 使用组件（本仓库内本地引用）
 
 ```typescript
-import { DataFileDropZone, DraggableList, ConfigSelector } from '@variant/shared-ui';
+import { DataFileDropZone, DraggableList, ConfigSelector } from '../../shared-ui';
 
 // 数据文件拖拽组件
 <DataFileDropZone 
@@ -89,10 +83,10 @@ import { DataFileDropZone, DraggableList, ConfigSelector } from '@variant/shared
 </ConfigSelector>
 ```
 
-### 4. 使用Hooks
+### 3. 使用Hooks（本仓库内本地引用）
 
 ```typescript
-import { usePopup, useSetting, useStandardConfigs } from '@variant/shared-ui';
+import { usePopup, useSetting, useStandardConfigs } from '../../shared-ui';
 
 // 弹窗管理
 const { showPopup, hidePopup } = usePopup();
@@ -104,10 +98,10 @@ const { settingData, saveSettingData } = useSetting('key', getDefaultSetting);
 const { configs, activeConfig, switchPlatform, addStandard, removeStandard } = useStandardConfigs('key', [], false);
 ```
 
-### 5. 使用工具函数
+### 4. 使用工具函数（本仓库内本地引用）
 
 ```typescript
-import { deepCopy, generateRandomId, storage } from '@variant/shared-ui';
+import { deepCopy, generateRandomId, storage } from '../../shared-ui';
 
 // 深拷贝
 const cloned = deepCopy(original);
@@ -120,14 +114,22 @@ await storage.setAsync('key', data);
 const data = await storage.getAsync('key');
 ```
 
-### 6. 使用指令
+### 5. 使用指令（本仓库内本地引用）
 
 ```typescript
-import { inputDblclickSelect } from '@variant/shared-ui';
+import { inputDblclickSelect } from '../../shared-ui';
 
 // 在Vue应用中注册指令
 app.directive('input-dblclick-select', inputDblclickSelect);
 ```
+
+## 事件与空状态约定
+
+- `ConfigSelector`：
+  - 事件：`@add-config`、`@remove-config`、`@switch-platform`
+  - 空状态：内部渲染 `<van-empty>`，上层无需重复渲染
+- `DataFileDropZone`：事件 `@files`、`@confirm`
+- `DraggableList`：事件 `@copy-item`、`@delete-item`、`@add-item`
 
 ## 主题系统
 
@@ -148,6 +150,7 @@ app.directive('input-dblclick-select', inputDblclickSelect);
   --text-primary: #24292f;
   --text-secondary: #656d76;
   --button-primary-bg: #0969da;
+  --border-color: #d0d7de;
 }
 
 html[data-theme='dark'] {
@@ -156,6 +159,7 @@ html[data-theme='dark'] {
   --text-primary: #f0f6fc;
   --text-secondary: #8b949e;
   --button-primary-bg: #2f81f7;
+  --border-color: #30363d;
 }
 ```
 
@@ -166,6 +170,15 @@ html[data-theme='dark'] {
 1. 在 `components/` 目录下创建组件
 2. 在 `types/ui.ts` 中添加类型定义
 3. 更新 `index.ts` 导出新组件
+
+## 存储与消息约定（MasterGo）
+
+- UI 与主线程以 `type: 'storage'` 通讯：
+  - `data: { _id, key, method: 'getAsync' | 'setAsync' | 'deleteAsync' | 'keysAsync', data? }`
+  - 主线程应回传 `sendMsgToUI('storage', { _id, data })`
+- `utils/storage.ts` 已内置：
+  - `setAsync` 使用 `JSON.parse(JSON.stringify(value))` 以避免 `postMessage` 克隆报错
+  - 仅使用小写 `'storage'` 作为消息类型
 
 ### 添加新样式
 

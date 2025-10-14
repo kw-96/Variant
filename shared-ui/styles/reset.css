@@ -569,6 +569,26 @@ button[type="primary"] {
   background-color: var(--bg-secondary) !important;
 }
 
+/* Vant Empty组件样式覆盖 - 支持浅色/深色模式 */
+.van-empty {
+  color: var(--text-secondary) !important;
+}
+
+.van-empty__description {
+  color: var(--text-secondary) !important;
+}
+
+/* 浅色模式 - 保持原样 */
+.van-empty__image {
+  opacity: 0.7 !important; /* 保持原透明度 */
+}
+
+/* 深色模式 - 使用滤镜反转颜色并添加色彩倾向 */
+html[data-theme='dark'] .van-empty__image svg {
+  filter: invert(0.7) brightness(0.5) sepia(1) hue-rotate(200deg) !important;
+  opacity: 0.7 !important;
+}
+
 /* Vant Popup组件样式覆盖 */
 .van-popup {
   background-color: var(--bg-secondary) !important;

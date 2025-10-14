@@ -48,7 +48,7 @@ const onFileDrop = (event: DragEvent) => {
   // 过滤文件类型
   const validFileObjects = files.filter(file => {
     const extension = '.' + file.name.split('.').pop()?.toLowerCase();
-    return props.accept.includes(extension);
+    return props.accept.indexOf(extension) !== -1;
   });
 
   // 保存文件名（与H5tools保持一致）

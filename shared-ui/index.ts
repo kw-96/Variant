@@ -4,12 +4,12 @@
  */
 
 // 导出所有hooks
-export * from './hooks/usePopup';
-export * from './hooks/useSetting';
-export * from './hooks/useStandardConfigs';
+export { providePopup, usePopup } from './hooks/usePopup';
+export { default as useSetting } from './hooks/useSetting';
+export { default as useStandardConfigs } from './hooks/useStandardConfigs';
 
 // 导出所有工具函数
-export * from './utils/common';
+export { deepCopy, generateRandomId } from './utils/common';
 export * from './utils/storage';
 
 // 导出所有指令
