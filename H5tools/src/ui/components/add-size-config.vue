@@ -121,7 +121,7 @@ const onFileDrop = (event: DragEvent) => {
   padding: 12px;
 }
 .container {
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .add {
@@ -131,13 +131,13 @@ const onFileDrop = (event: DragEvent) => {
 .drop-area {
   width: 100%;
   height: 200px;
-  border: 2px dashed #ccc;
+  border: 2px dashed var(--border-color);
   border-radius: 6px;
   display: flex;
   justify-content: center;
   align-items: center;
   text-align: center;
-  color: #999;
+  color: var(--text-secondary);
 }
 
 .drop-area ul {
@@ -146,6 +146,6 @@ const onFileDrop = (event: DragEvent) => {
 }
 
 .drop-area li {
-  color: #333;
+  color: var(--text-primary);
 }
 </style>

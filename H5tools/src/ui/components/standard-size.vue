@@ -118,7 +118,7 @@ function onDelete(option: any, index: number) {
 .container {
   padding: 2px 2px 2px 12px;
   margin: 12px;
-  border: 2px solid #f7f8fa;
+  border: 2px solid var(--bg-secondary);
   border-radius: 12px;
 
   .list {
@@ -133,14 +133,14 @@ function onDelete(option: any, index: number) {
   line-height: 1;
   padding: 6px 0;
   white-space: nowrap;
-  border-bottom: 0.5px solid #f7f7f7;
+  border-bottom: 0.5px solid var(--divider-color);
   &:last-child {
     border-bottom: none;
   }
 }
 
 .van-field {
-  background: #f5f5f5;
+  background: var(--input-bg);
   margin: 0 4px;
   padding: 6px 2px;
   border-radius: 4px;

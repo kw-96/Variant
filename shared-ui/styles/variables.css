@@ -1,0 +1,62 @@
+/* GitHub配色方案 - CSS变量定义 */
+
+/* GitHub Light Theme */
+:root {
+  /* GitHub Light Theme */
+  --bg-primary: #ffffff;                    /* GitHub: color-canvas-default */
+  --bg-secondary: #f6f8fa;                 /* GitHub: color-canvas-subtle */
+  --text-primary: #24292f;                  /* GitHub: color-fg-default */
+  --text-secondary: #656d76;               /* GitHub: color-fg-muted */
+  --border-color: #d1d9e0;                 /* GitHub: color-border-default */
+  --divider-color: #d8dee4;                /* GitHub: color-border-muted */
+  --scrollbar-track: #f6f8fa;              /* GitHub: color-canvas-subtle */
+  --scrollbar-thumb: #d1d9e0;              /* GitHub: color-border-default */
+  --scrollbar-thumb-hover: #656d76;        /* GitHub: color-fg-muted */
+  
+  /* 输入框和表单元素专用颜色 */
+  --input-bg: #ffffff;                     /* GitHub: color-canvas-default */
+  --input-border: #d1d9e0;                 /* GitHub: color-border-default */
+  --input-text: #24292f;                   /* GitHub: color-fg-default */
+  --input-placeholder: #656d76;            /* GitHub: color-fg-muted */
+  
+  /* 按钮和交互元素颜色 - GitHub蓝色 */
+  --button-primary-bg: #0969da;            /* GitHub: color-accent-emphasis */
+  --button-primary-text: #ffffff;           /* 白色文字 */
+  --button-secondary-bg: #f6f8fa;          /* GitHub: color-canvas-subtle */
+  --button-secondary-text: #24292f;        /* GitHub: color-fg-default */
+  
+  /* 标签和徽章颜色 */
+  --tag-bg: #f6f8fa;                       /* GitHub: color-canvas-subtle */
+  --tag-text: #24292f;                     /* GitHub: color-fg-default */
+  --tag-border: #d1d9e0;                  /* GitHub: color-border-default */
+}
+
+/* GitHub Dark Theme */
+html[data-theme='dark'] {
+  --bg-primary: #0d1117;                    /* GitHub: color-canvas-default */
+  --bg-secondary: #161b22;                 /* GitHub: color-canvas-subtle */
+  --text-primary: #f0f6fc;                 /* GitHub: color-fg-default */
+  --text-secondary: #8b949e;               /* GitHub: color-fg-muted */
+  --border-color: #30363d;                 /* GitHub: color-border-default */
+  --divider-color: #21262d;                /* GitHub: color-border-muted */
+  --scrollbar-track: #161b22;              /* GitHub: color-canvas-subtle */
+  --scrollbar-thumb: #30363d;              /* GitHub: color-border-default */
+  --scrollbar-thumb-hover: #8b949e;        /* GitHub: color-fg-muted */
+  
+  /* 输入框和表单元素专用颜色 */
+  --input-bg: #0d1117;                     /* GitHub: color-canvas-default */
+  --input-border: #30363d;                 /* GitHub: color-border-default */
+  --input-text: #f0f6fc;                   /* GitHub: color-fg-default */
+  --input-placeholder: #8b949e;            /* GitHub: color-fg-muted */
+  
+  /* 按钮和交互元素颜色 - GitHub蓝色 */
+  --button-primary-bg: #2f81f7;            /* GitHub: color-accent-emphasis */
+  --button-primary-text: #ffffff;           /* 白色文字 */
+  --button-secondary-bg: #161b22;         /* GitHub: color-canvas-subtle */
+  --button-secondary-text: #f0f6fc;        /* GitHub: color-fg-default */
+  
+  /* 标签和徽章颜色 */
+  --tag-bg: #161b22;                       /* GitHub: color-canvas-subtle */
+  --tag-text: #f0f6fc;                     /* GitHub: color-fg-default */
+  --tag-border: #30363d;                  /* GitHub: color-border-default */
+}

@@ -62,7 +62,7 @@ function onSave() {
 
   .section-title {
     font-size: 14px;
-    color: #323233;
+    color: var(--text-primary);
     margin-bottom: 12px;
     text-align: left;
   }
@@ -70,12 +70,12 @@ function onSave() {
 
 .input-label {
   font-size: 14px;
-  color: #323233;
+  color: var(--text-primary);
   margin-bottom: 8px;
 }
 
 :deep(.van-field) {
-  background-color: #f7f8fa;
+  background-color: var(--input-bg);
   border-radius: 4px;
   padding: 4px 8px;
 

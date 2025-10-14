@@ -106,7 +106,7 @@ const onAddStandard = () => {
     {
       title: '规范设置',
       popupStyle: {
-        background: '#ffff',
+        background: 'var(--bg-secondary)',
       },
       storageKey: props.storageKey,
     },

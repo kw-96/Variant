@@ -1,0 +1,123 @@
+/* Vant组件样式覆盖 - 适用于所有主题 */
+
+/* 通用表单元素样式 - 适用于所有主题 */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+textarea,
+select {
+  background-color: var(--input-bg) !important;
+  border-color: var(--input-border) !important;
+  color: var(--input-text) !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--input-placeholder) !important;
+}
+
+/* 通用按钮样式 - 适用于所有主题 */
+button {
+  background-color: var(--button-secondary-bg) !important;
+  color: var(--button-secondary-text) !important;
+  border-color: var(--input-border) !important;
+}
+
+button.primary,
+button[type="primary"] {
+  background-color: var(--button-primary-bg) !important;
+  color: var(--button-primary-text) !important;
+}
+
+/* 通用标签和徽章样式 - 适用于所有主题 */
+.tag,
+.badge,
+.label {
+  background-color: var(--tag-bg) !important;
+  color: var(--tag-text) !important;
+  border-color: var(--tag-border) !important;
+}
+
+/* Vant Field组件样式覆盖 */
+.van-field {
+  background-color: var(--input-bg) !important;
+  border-bottom: 1px solid var(--border-color) !important;
+}
+
+.van-field__label {
+  color: var(--text-primary) !important;
+}
+
+.van-field__control {
+  background-color: var(--input-bg) !important;
+  color: var(--input-text) !important;
+}
+
+.van-field__control::placeholder {
+  color: var(--input-placeholder) !important;
+}
+
+.van-field__right-icon {
+  color: var(--text-secondary) !important;
+}
+
+.van-field__left-icon {
+  color: var(--text-secondary) !important;
+}
+
+/* Vant Button组件样式覆盖 */
+.van-button {
+  background-color: var(--button-secondary-bg) !important;
+  color: var(--button-secondary-text) !important;
+  border-color: var(--input-border) !important;
+}
+
+.van-button--primary {
+  background-color: var(--button-primary-bg) !important;
+  color: var(--button-primary-text) !important;
+}
+
+/* Vant Tag组件样式覆盖 */
+.van-tag {
+  background-color: var(--tag-bg) !important;
+  color: var(--tag-text) !important;
+  border-color: var(--tag-border) !important;
+}
+
+/* Vant Tabs组件样式覆盖 */
+.van-tabs__wrap {
+  background-color: var(--bg-primary) !important;
+  border-bottom: 1px solid var(--border-color) !important;
+}
+
+.van-tabs__nav {
+  background-color: var(--bg-primary) !important;
+}
+
+.van-tab {
+  color: var(--text-secondary) !important;
+  background-color: var(--bg-primary) !important;
+}
+
+.van-tab--active {
+  color: var(--button-primary-bg) !important;
+  background-color: var(--bg-primary) !important;
+}
+
+.van-tabs__line {
+  background-color: var(--button-primary-bg) !important;
+}
+
+.van-tabs__content {
+  background-color: var(--bg-secondary) !important;
+}
+
+/* Vant Popup组件样式覆盖 */
+.van-popup {
+  background-color: var(--bg-secondary) !important;
+}
+
+.van-popup__content {
+  background-color: var(--bg-secondary) !important;
+}

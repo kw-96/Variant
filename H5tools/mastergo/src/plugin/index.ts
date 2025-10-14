@@ -71,6 +71,11 @@ try {
     mg.ui.postMessage({ type: 'THEME_CHANGE', theme });
   });
   
+  // 立即发送初始主题状态
+  const initialTheme = (mg as any).themeColor || 'light';
+  console.log('Initial theme:', initialTheme);
+  mg.ui.postMessage({ type: 'THEME_CHANGE', theme: initialTheme });
+  
   // 立即发送初始选择状态
   const currentPage = (mg as any).document?.currentPage;
   if (currentPage) {
