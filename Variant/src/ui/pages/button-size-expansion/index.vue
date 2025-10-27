@@ -106,7 +106,7 @@ const onUpdate = (val: any) => {
 
 .btns {
   position: fixed;
-  left: 20px;
+  left: 90px;
   right: 20px;
   bottom: 10px;
 

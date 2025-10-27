@@ -1,7 +1,7 @@
 {
-  "name": "h5tools-shared",
+  "name": "variant-shared",
   "version": "1.0.0",
-  "description": "H5tools shared frontend interface",
+  "description": "Variant shared frontend interface",
   "private": true,
   "scripts": {
     "lint": "eslint . --ext .vue,.js,.ts,.tsx",

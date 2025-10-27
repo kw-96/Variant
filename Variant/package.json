@@ -1,7 +1,7 @@
 {
-  "name": "h5tools",
+  "name": "variant",
   "version": "1.0.0",
-  "description": "H5tools - Design tools for Figma and MasterGo",
+  "description": "Variant - Multi-functional design tools collection for Figma and MasterGo",
   "private": true,
   "scripts": {
     "dev": "npm run dev:figma & npm run dev:mastergo",

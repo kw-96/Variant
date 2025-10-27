@@ -1,7 +1,7 @@
 {
-  "name": "h5tools-figma",
+  "name": "variant-figma",
   "version": "1.0.0",
-  "description": "H5tools Figma plugin",
+  "description": "Variant Figma plugin",
   "private": true,
   "scripts": {
     "dev": "webpack build --mode development -w",

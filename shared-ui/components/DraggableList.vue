@@ -19,26 +19,26 @@
       :disabled="!draggable"
     >
       <template #item="{ element: item, index }">
-        <van-row :class="$style['van-row']">
-          <van-col v-if="showCheckbox" span="1">
+        <div :class="$style['van-row']">
+          <div v-if="showCheckbox" :class="$style['checkbox-col']">
             <van-checkbox
               icon-size="16px"
               v-model="item.checked"
               shape="square"
             />
-          </van-col>
-          <van-col span="2">{{ index + 1 }}</van-col>
+          </div>
+          <div :class="$style['index-col']">{{ index + 1 }}</div>
 
-          <van-col span="6" :class="$style['name']">
+          <div :class="[$style['name'], $style.col]">
             <van-field
               :class="$style['van-field']"
               v-model="item.name"
               v-input-dblclick-select
               :disabled="disabled"
             />
-          </van-col>
+          </div>
           
-          <van-col span="9" :class="$style['size-col']">
+          <div :class="[$style['size-col'], $style.col]">
             <van-field
               :class="$style['van-field']"
               v-model="item.width"
@@ -52,9 +52,9 @@
               type="digit"
               :disabled="disabled"
             />
-          </van-col>
+          </div>
 
-          <van-col span="6" :class="$style['action-col']">
+          <div :class="[$style['action-col'], $style.col]">
             <van-icon
               v-if="showAdd"
               name="add-o"
@@ -73,8 +73,8 @@
               title="拖动" 
               class="drag-handle" 
             />
-          </van-col>
-        </van-row>
+          </div>
+        </div>
       </template>
     </draggable>
   </div>
@@ -144,10 +144,11 @@ const deleteItem = (index: number) => {
 
 <style lang="less" module>
 .container {
-  padding: 2px 2px 2px 12px;
+  padding: 2px 2px 2px 4px;
   margin: 12px;
-  border: 2px solid var(--bg-secondary);
+  // border: 2px solid var(--bg-secondary);
   border-radius: 12px;
+  overflow: visible;
 
   .list {
     padding-right: 6px;
@@ -156,15 +157,62 @@ const deleteItem = (index: number) => {
 
 .van-row {
   display: flex;
-  align-content: center;
   align-items: center;
   line-height: 1;
   padding: 6px 0;
   white-space: nowrap;
   border-bottom: 0.5px solid var(--divider-color);
+  overflow: visible;
   &:last-child {
     border-bottom: none;
   }
+  
+  :global(.van-checkbox) {
+    overflow: visible !important;
+  }
+}
+
+.checkbox-col {
+  flex-shrink: 0;
+  margin-right: 6px;
+}
+
+.index-col {
+  flex-shrink: 0;
+  width: 20px;
+  margin-right: 2px;
+}
+
+.col {
+  display: flex;
+  align-items: center;
+}
+
+.name {
+  flex: 1;
+  min-width: 60px;
+  
+  .van-field {
+    width: 100%;
+  }
+}
+
+.size-col {
+  flex: 0 0 110px;
+  justify-content: center;
+  
+  .van-field {
+    width: 48px;
+    min-width: 48px;
+  }
+}
+
+.action-col {
+  flex-shrink: 0;
+  flex-basis: 50px;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-left: -10px;
 }
 
 .van-field {
@@ -181,28 +229,5 @@ const deleteItem = (index: number) => {
     font-size: 12px;
     text-align: center;
   }
-}
-
-.name {
-  .van-field {
-    width: 100%;
-  }
-}
-
-.size-col {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  
-  .van-field {
-    width: 60px;
-  }
-}
-
-.action-col {
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  gap: 8px;
 }
 </style>

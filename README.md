@@ -1,15 +1,20 @@
 # Variant
 
-一个包含两个独立设计工具插件的项目：ChannelFlex 和 H5tools。这些工具分别提供 Figma 和 MasterGo 两个版本，为设计师提供强大的设计辅助功能。
+一个专业的多功能设计工具插件项目。该工具提供 Figma 和 MasterGo 两个版本，为设计师提供强大的设计辅助功能，包括H5设计、渠道美术、表格处理、矢量工具等多种功能模块。
 
 ## 项目特性
 
-- 🎨 **ChannelFlex** - 灵活的设计通道管理工具
-- 🛠️ **H5tools** - 专业的H5页面设计工具
+- 🛠️ **Variant工具集** - 多功能设计工具集合
+- 🎨 **H5设计工具** - 专业的H5页面设计功能
+- 📊 **表格处理工具** - 批量表格创建、编辑和样式处理
+- 🖼️ **图像处理工具** - 图片导入、压缩、批量导出
+- 📐 **矢量工具** - 位图转矢量、矢量图形处理
+- 🔧 **容器工具** - 等比缩放、文本处理、图层管理
+- 🎯 **像素工具** - 网格栅格化、颜色工具、填充修改
 - 🔄 **多平台支持** - 同时支持 Figma 和 MasterGo 平台
 - 🏗️ **共用前端架构** - Figma和MasterGo版本共用同一套前端界面
 - 🔌 **平台适配层** - 通过适配层实现跨平台兼容
-- 📦 **统一依赖管理** - ChannelFlex和H5tools共用所有依赖
+- 📦 **统一依赖管理** - Variant工具集使用统一的依赖管理
 - 🚀 **Monorepo架构** - 使用workspace管理多个子项目
 - 🔧 **完善的开发工具配置**
 - 📚 **详细的文档说明**
@@ -45,7 +50,7 @@
 
 ### 🧩 Shared UI（shared-ui）
 
-- 统一的 UI 组件与样式来源，供 ChannelFlex 与 H5tools 复用
+- 统一的 UI 组件与样式来源，供 Variant工具集 复用
 - 提供组件：`DataFileDropZone`、`ConfigSelector`、`DraggableList`
 - 提供 hooks：`usePopup`、`useSetting`、`useStandardConfigs`
 - 提供样式：`shared-ui/styles/index.css`（含 GitHub Light/Dark 主题变量与 Vant 覆盖）
@@ -69,23 +74,23 @@
    npm run install:all
    ```
 
-2. **构建H5tools**
+2. **构建Variant工具集**
 
    ```bash
-   npm run build:h5tools:mastergo
+   npm run build:variant:mastergo
    ```
 
 3. **在MasterGo中测试**
    - 打开MasterGo桌面应用
-   - 导入 `H5tools/mastergo/dist` 目录
+   - 导入 `Variant/mastergo/dist` 目录
    - 体验H5一键切图和按钮尺寸拓展功能
 
-4. **在 H5tools 引用 shared-ui（本地路径）**
+4. **在 Variant工具集 引用 shared-ui（本地路径）**
 
-   - 在 H5tools 中直接通过相对路径引用组件与样式（本仓库已按此方式接入）：
+   - 在 Variant工具集 中直接通过相对路径引用组件与样式（本仓库已按此方式接入）：
 
    ```ts
-   // 入口样式（示例：H5tools/src/ui/ui.ts）
+   // 入口样式（示例：Variant/src/ui/ui.ts）
    import '../../../shared-ui/styles/index.css';
 
    // 组件与 hooks（示例）
@@ -136,14 +141,11 @@
    npm run dev
    
    # 启动特定工具
-   npm run dev:channelflex    # ChannelFlex所有平台
-   npm run dev:h5tools        # H5tools所有平台
+   npm run dev:variant        # Variant工具集所有平台
    
    # 启动特定工具特定平台
-   npm run dev:channelflex:figma
-   npm run dev:channelflex:mastergo
-   npm run dev:h5tools:figma
-   npm run dev:h5tools:mastergo
+   npm run dev:variant:figma
+   npm run dev:variant:mastergo
    ```
 
 4. **构建项目**
@@ -153,14 +155,11 @@
    npm run build
    
    # 构建特定工具的所有版本
-   npm run build:channelflex    # ChannelFlex的Figma和MasterGo版本
-   npm run build:h5tools        # H5tools的Figma和MasterGo版本
+   npm run build:variant        # Variant工具集的Figma和MasterGo版本
    
    # 构建特定工具的特定版本
-   npm run build:channelflex:figma      # ChannelFlex Figma版本
-   npm run build:channelflex:mastergo   # ChannelFlex MasterGo版本
-   npm run build:h5tools:figma          # H5tools Figma版本
-   npm run build:h5tools:mastergo       # H5tools MasterGo版本
+   npm run build:variant:figma          # Variant工具集 Figma版本
+   npm run build:variant:mastergo       # Variant工具集 MasterGo版本
    ```
 
 5. **代码检查**
@@ -175,28 +174,52 @@
 
 ## 工具介绍
 
-### ChannelFlex
+### Variant工具集
 
-- **功能描述**：灵活的设计通道管理工具，帮助设计师高效管理设计资源和工作流程
+- **功能描述**：多功能设计工具集合，整合了H5设计、渠道美术、表格处理、矢量工具等多种功能模块
 - **支持平台**：Figma、MasterGo
 - **架构说明**：Figma版本和MasterGo版本共用同一套前端界面，通过平台适配层实现跨平台兼容
-- **主要特性**：
-  - 设计通道的创建和管理
-  - 资源组织和分类
-  - 团队协作功能
-  - 版本控制和同步
+- **主要功能模块**：
 
-### H5tools
+#### 🎨 H5设计工具
+- **H5一键切图**：智能识别设计稿中的元素，一键生成多尺寸切图
+- **按钮尺寸拓展**：根据设计规范自动生成不同尺寸的按钮变体
+- **规范配置管理**：支持导入Excel配置文件，管理设计规范
+- **实时预览**：在设计过程中实时预览生成效果
+- **批量操作**：支持批量处理多个元素，提高工作效率
 
-- **功能描述**：专业的H5页面设计工具，专注于移动端H5页面的快速设计和开发
-- **支持平台**：Figma、MasterGo
-- **架构说明**：Figma版本和MasterGo版本共用同一套前端界面，通过平台适配层实现跨平台兼容
-- **主要特性**：
-  - **H5一键切图**：智能识别设计稿中的元素，一键生成多尺寸切图
-  - **按钮尺寸拓展**：根据设计规范自动生成不同尺寸的按钮变体
-  - **规范配置管理**：支持导入Excel配置文件，管理设计规范
-  - **实时预览**：在设计过程中实时预览生成效果
-  - **批量操作**：支持批量处理多个元素，提高工作效率
+#### 📊 表格处理工具
+- **表格创建**：支持Excel/CSV格式导入，创建规格表框架
+- **表格编辑**：批量编辑表格、替换文本、选定排格
+- **表格样式**：一键应用表格样式、伪合并表格
+- **表格转换**：横行列互换、表格转区域等高级功能
+
+#### 🖼️ 图像处理工具
+- **导入大图片**：支持常见图片格式，保持宽高比
+- **自动压缩**：批量自动压缩图片至最优大小
+- **批量导出**：批量导出素材并打包输出zip
+- **自定义导出**：支持导出参数自定义设置
+
+#### 🔧 容器工具
+- **等比缩放工具**：一键缩放操作
+- **文本工具**：一键按分配合并文本
+- **图层工具**：批量调整图层命名、合并画板、调换位置
+- **组件工具**：批量创建组件、实例、替换引用
+- **自适应工具**：自动排序、自动对齐对象
+
+#### 🎯 像素工具
+- **网格栅格化**：自动栅格化对象
+- **简单变形**：快速变形操作
+- **填充修改**：一键快速尺寸、Copy属性、对比素材
+- **颜色工具**：快速色板提取、一键色彩优化
+
+#### 📐 矢量工具
+- **位图转矢量**：自动转换为矢量图形
+- **矢量处理**：快速调整矢量图形
+
+#### 🚀 原型工具
+- **AI工具**：开发流程AI应用
+- **流程工具**：快速建立流程
 
 #### 存储与消息约定（MasterGo）
 
@@ -215,7 +238,7 @@
 
 ## 功能演示
 
-### H5tools 使用场景
+### Variant工具集 使用场景
 
 #### 🎯 H5一键切图
 
@@ -240,31 +263,29 @@
 ```t
 Variant/
 ├── package.json              # 🎯 根目录：统一管理所有依赖
-├── shared-ui/                # 
-│   ├── components/           # 
-│   ├── directives/           # 
-│   ├── hooks/                # 
-│   ├── styles/               # 
-│   ├── types/                # 
-│   ├── utils/                # 
-├── ChannelFlex/              # ChannelFlex 工具目录
-│   ├── src/                  # 共用前端界面源码
-│   │   └── package.json      # 仅包含lint脚本
-│   ├── figma/                # Figma 平台适配层
-│   │   ├── src/
-│   │   │   ├── plugin/       # Figma插件逻辑
-│   │   │   └── messages/      # Figma消息通信
-│   │   ├── manifest.json     # Figma插件配置
-│   │   ├── webpack.config.js # Figma构建配置
-│   │   └── package.json      # 仅包含Figma特定依赖
-│   └── mastergo/             # MasterGo 平台适配层
-│       ├── src/
-│       │   ├── plugin/       # MasterGo插件逻辑
-│       │   └── messages/     # MasterGo消息通信
-│       ├── manifest.json     # MasterGo插件配置
-│       ├── vite.config.ts    # MasterGo构建配置
-│       └── package.json      # 仅包含MasterGo特定依赖
-├── H5tools/                  # H5tools 工具目录
+├── shared-ui/                # 共享UI组件库
+│   ├── components/           # 通用组件
+│   │   ├── ConfigSelector.vue    # 配置选择器
+│   │   ├── DataFileDropZone.vue  # 文件拖拽区域
+│   │   └── DraggableList.vue     # 可拖拽列表
+│   ├── directives/           # Vue指令
+│   │   └── input-dblclick-select.ts # 双击选择指令
+│   ├── hooks/                # Vue组合式函数
+│   │   ├── usePopup.ts           # 弹窗管理
+│   │   ├── useSetting.ts         # 设置管理
+│   │   └── useStandardConfigs.ts # 标准配置管理
+│   ├── styles/               # 样式系统
+│   │   ├── components.css        # 组件样式
+│   │   ├── index.css             # 样式入口
+│   │   ├── reset.css             # 重置样式
+│   │   └── variables.css         # CSS变量
+│   ├── types/                # TypeScript类型
+│   │   └── ui.ts                 # UI相关类型
+│   ├── utils/                # 工具函数
+│   │   ├── common.ts             # 通用工具
+│   │   └── storage.ts            # 存储适配器
+│   └── package.json          # 共享UI库配置 
+├── Variant/                  # Variant工具集目录
 │   ├── src/                  # 共用前端界面源码
 │   │   ├── ui/               # 用户界面
 │   │   │   ├── components/   # 组件库
@@ -290,16 +311,17 @@ Variant/
 │   │   └── package.json      # 仅包含lint脚本
 │   ├── figma/                # Figma 平台适配层
 │   │   ├── src/
-│   │   │   ├── plugin/       # Figma插件逻辑
-│   │   │   │   ├── index.ts             # 插件入口
-│   │   │   │   ├── core.ts              # 核心功能
-│   │   │   │   ├── utils.ts             # 工具函数
-│   │   │   │   └── messages/            # 消息处理器
-│   │   │   └── messages/     # Figma消息通信
+│   │   │   └── plugin/       # Figma插件逻辑
+│   │   │       ├── index.ts             # 插件入口
+│   │   │       ├── core.ts              # 核心功能
+│   │   │       ├── utils.ts             # 工具函数
+│   │   │       └── messages/            # 消息处理器
+│   │   ├── dist/             # 构建输出
 │   │   ├── manifest.json     # Figma插件配置
 │   │   ├── webpack.config.js # Figma构建配置
 │   │   ├── tsconfig.json     # TypeScript配置
-│   │   └── package.json      # 仅包含Figma特定依赖
+│   │   ├── ui.html           # UI入口
+│   │   └── package.json      # Figma特定依赖
 │   └── mastergo/             # MasterGo 平台适配层
 │       ├── src/
 │       │   ├── plugin/       # MasterGo插件逻辑
@@ -307,16 +329,24 @@ Variant/
 │       │   │   ├── core.ts              # 核心功能
 │       │   │   ├── utils.ts             # 工具函数
 │       │   │   └── messages/            # 消息处理器
-│       │   └── messages/     # MasterGo消息通信
+│       │   └── types/        # 类型定义
+│       │       └── raw.d.ts             # 原始类型
+│       ├── dist/             # 构建输出
 │       ├── index.html        # MasterGo UI入口
 │       ├── manifest.json     # MasterGo插件配置
 │       ├── vite.config.ts    # MasterGo构建配置
 │       ├── tsconfig.json     # TypeScript配置
-│       └── package.json      # 仅包含MasterGo特定依赖
+│       └── package.json      # MasterGo特定依赖
+├── backup/                    # 备份目录（原始版本插件）
+│   ├── figma-plugin-main/     # Figma插件主版本
+│   ├── ToolsSet-main/         # 工具集主版本
+│   └── 渠道美术-延展工具集/    # 渠道美术延展工具
 ├── docs/                     # 文档目录
 ├── tests/                    # 测试文件
 ├── logs/                     # 日志文件
-├── DEPENDENCIES.md           # 依赖管理指南
+│   └── 2025-10-24.md         # 修改日志
+├── node_modules/              # 依赖包
+├── package-lock.json          # 依赖锁定文件
 └── README.md                 # 项目说明
 
 ## 近期变更要点（与 shared-ui 接入相关）
@@ -330,7 +360,7 @@ Variant/
 
 ## 依赖管理
 
-Variant采用**项目根目录统一管理**的依赖架构，ChannelFlex和H5tools共用所有依赖：
+Variant采用**项目根目录统一管理**的依赖架构，Variant工具集使用统一的依赖管理：
 
 ### 🎯 架构优势
 
@@ -356,27 +386,21 @@ npm install
 npm run dev
 
 # 启动特定工具的所有版本
-npm run dev:channelflex        # ChannelFlex的Figma和MasterGo版本
-npm run dev:h5tools           # H5tools的Figma和MasterGo版本
+npm run dev:variant           # Variant工具集的Figma和MasterGo版本
 
 # 启动特定工具的特定版本
-npm run dev:channelflex:figma      # ChannelFlex Figma版本
-npm run dev:channelflex:mastergo   # ChannelFlex MasterGo版本
-npm run dev:h5tools:figma          # H5tools Figma版本
-npm run dev:h5tools:mastergo       # H5tools MasterGo版本
+npm run dev:variant:figma          # Variant工具集 Figma版本
+npm run dev:variant:mastergo       # Variant工具集 MasterGo版本
 
 # 构建所有工具的所有版本
 npm run build
 
 # 构建特定工具的所有版本
-npm run build:channelflex     # ChannelFlex的Figma和MasterGo版本
-npm run build:h5tools         # H5tools的Figma和MasterGo版本
+npm run build:variant         # Variant工具集的Figma和MasterGo版本
 
 # 构建特定工具的特定版本
-npm run build:channelflex:figma      # ChannelFlex Figma版本
-npm run build:channelflex:mastergo   # ChannelFlex MasterGo版本
-npm run build:h5tools:figma          # H5tools Figma版本
-npm run build:h5tools:mastergo       # H5tools MasterGo版本
+npm run build:variant:figma          # Variant工具集 Figma版本
+npm run build:variant:mastergo       # Variant工具集 MasterGo版本
 
 # 代码检查
 npm run lint                  # 检查所有代码

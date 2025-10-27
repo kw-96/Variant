@@ -1,7 +1,7 @@
 {
-  "name": "h5tools-mastergo",
+  "name": "variant-mastergo",
   "version": "1.0.0",
-  "description": "H5tools MasterGo plugin",
+  "description": "Variant MasterGo plugin",
   "private": true,
   "main": "index.js",
   "license": "MIT",

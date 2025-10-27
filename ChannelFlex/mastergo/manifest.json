@@ -1,9 +1,0 @@
-{
-  "name": "渠道美术-延展工具",
-  "id": 173779959576424,
-  "main": "dist/main.js",
-  "ui": "dist/index.html",
-  "editor_type": [
-    "canvas"
-  ]
-}
