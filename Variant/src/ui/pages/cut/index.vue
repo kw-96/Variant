@@ -60,11 +60,11 @@
 import { ref, watch } from 'vue';
 import Setting from './module/setting.vue';
 import { MessageType, sendMsgToPlugin } from '../../../messages';
-import { getDefaultExpandData } from '../../js/setting/one-click-expand';
+import { getDefaultExpandData } from '../../hooks/setting-one-click-expand';
 import useGlobalStore from '../../store/useGlobalStore';
 import SizeConfig from '../../components/size-config.vue';
-import { STORAGE_KEY } from '../../js/config/constant';
-import useSetting from '../../../../../shared-ui/hooks/useSetting';
+import { STORAGE_KEY } from '../../../config/rule';
+import useSetting from '../../hooks/useSetting';
 
 const { settingData, saveSettingData } = useSetting(
   STORAGE_KEY.CUT_SIZE_EXPANSION_SETTING,

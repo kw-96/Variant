@@ -5,21 +5,44 @@
 
 import { addMessageListener, sendMsgToUI, MessageType } from '../../../src/messages';
 
-// 手动导入所有消息处理器
-import autoGenerateButtons from './messages/auto-generate-buttons';
-import clientStorage from './messages/client-storage';
-import genButtonPreview from './messages/gen-button-preview';
-import genExpandPreview from './messages/gen-expand-preview';
-import oneClickCut from './messages/one-click-cut';
-import oneClickExpand from './messages/one-click-expand';
+// ==================== 导入所有消息处理器 ====================
+// 按照功能模块分组组织，便于维护和扩展
 
+// 插件通信基础设施
+import clientStorage from './messages/client-storage';
+
+// 资源位功能模块
+import createFrames from './messages/asset-position/create-frames';
+import autoLayout from './messages/asset-position/auto-layout';
+import autoAddComponent from './messages/asset-position/auto-add-component';
+import getFrame from './messages/asset-position/get-frame';
+import importImages from './messages/asset-position/import-images';
+
+// H5切图功能模块
+import oneClickCut from './messages/h5-cut/one-click-cut';
+import oneClickExpand from './messages/h5-cut/one-click-expand';
+import genExpandPreview from './messages/h5-cut/gen-expand-preview';
+import autoGenerateButtons from './messages/h5-cut/auto-generate-buttons';
+import genButtonPreview from './messages/h5-cut/gen-button-preview';
+
+// 注册所有消息处理器
 const messages = [
-  autoGenerateButtons,
+  // 基础设施
   clientStorage,
-  genButtonPreview,
-  genExpandPreview,
+  
+  // 资源位
+  createFrames,
+  autoLayout,
+  autoAddComponent,
+  getFrame,
+  importImages,
+  
+  // H5切图
   oneClickCut,
   oneClickExpand,
+  genExpandPreview,
+  autoGenerateButtons,
+  genButtonPreview,
 ];
 
 // Runs this code if the plugin is run in MasterGo

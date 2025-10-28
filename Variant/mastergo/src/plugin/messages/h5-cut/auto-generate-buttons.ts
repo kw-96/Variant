@@ -1,4 +1,4 @@
-import { genExpandFrame } from '../core';
+import { genExpandFrame } from '../../core';
 
 // ==================== 按钮尺寸拓展 - 自动生成按钮功能 ====================
 // 用于"按钮尺寸拓展"页面的自动生成按钮功能

@@ -57,7 +57,7 @@
 
 <script lang="ts" setup>
 import { ref, computed, watch } from 'vue';
-import { providePopup } from '../../../shared-ui/hooks/usePopup';
+import { providePopup } from './hooks/usePopup';
 import Cut from './pages/cut/index.vue';
 import ButtonSizeExpansion from './pages/button-size-expansion/index.vue';
 import Create from './pages/create/index.vue';
@@ -144,6 +144,14 @@ const currentSinglePage = computed(() => {
   }
   return null;
 });
+
+// 监听页面内标签切换事件
+const handleTabChange = (tabIndex: number) => {
+  activeSubTab.value = tabIndex;
+};
+
+// 将切换函数暴露给子组件
+(window as any).__appTabSwitch = handleTabChange;
 
 // 当导航切换时重置子标签
 watch(activeNav, () => {

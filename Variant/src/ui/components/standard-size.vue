@@ -15,7 +15,8 @@
 
 <script lang="ts" setup>
 import { computed } from 'vue';
-import { DraggableList, deepCopy, generateRandomId } from '../../../../shared-ui';
+import DraggableList from './DraggableList.vue';
+import { deepCopy, generateRandomId } from '../utils/common';
 
 const props = defineProps({
   config: {

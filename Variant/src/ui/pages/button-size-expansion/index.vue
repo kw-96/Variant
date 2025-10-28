@@ -39,11 +39,11 @@ import { ref } from 'vue';
 import { MessageType, sendMsgToPlugin } from '../../../messages';
 import SizeConfig from '../../components/size-config.vue';
 import Setting from './setting.vue';
-import { usePopup } from '../../../../../shared-ui/hooks/usePopup';
-import useSetting from '../../../../../shared-ui/hooks/useSetting';
+import { usePopup } from '../../hooks/usePopup';
+import useSetting from '../../hooks/useSetting';
 
-import { STORAGE_KEY } from '../../js/config/constant';
-import { getDefaultExpandData } from '../../js/setting/button-size-expansion';
+import { STORAGE_KEY } from '../../../config/rule';
+import { getDefaultExpandData } from '../../hooks/setting-button-size-expansion';
 
 const { settingData, saveSettingData } = useSetting(
   STORAGE_KEY.BUTTON_SIZE_EXPANSION_SETTING,

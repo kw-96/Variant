@@ -1,5 +1,5 @@
-import { MessageType } from '../../../../src/messages';
-import { genPreviewFrame } from '../core';
+import { MessageType } from '../../../../../src/messages';
+import { genPreviewFrame } from '../../core';
 
 // ==================== H5一键切图 - 预览功能 ====================
 // 用于"H5一键切图"页面的"预览"按钮
@@ -41,3 +41,4 @@ export default {
   type: MessageType.GEN_EXPAND_PREVIEW,
   handler,
 };
+

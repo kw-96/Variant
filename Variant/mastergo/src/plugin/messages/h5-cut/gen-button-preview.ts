@@ -1,5 +1,5 @@
-import { MessageType } from '../../../../src/messages';
-import { genPreviewFrame } from '../core';
+import { MessageType } from '../../../../../src/messages';
+import { genPreviewFrame } from '../../core';
 
 // ==================== 按钮尺寸拓展 - 预览功能 ====================
 // 用于"按钮尺寸拓展"页面的预览功能

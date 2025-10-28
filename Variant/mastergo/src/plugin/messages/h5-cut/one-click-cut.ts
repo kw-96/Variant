@@ -1,4 +1,4 @@
-import { MessageType } from '../../../../src/messages';
+import { MessageType } from '../../../../../src/messages';
 
 // ==================== H5一键切图 - 一键分割功能 ====================
 // 用于"H5一键切图"页面的"一键分割"按钮

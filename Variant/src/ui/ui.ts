@@ -1,4 +1,4 @@
-import '../../../shared-ui/styles/index.css';
+import './styles/index.css';
 import 'vant/lib/index.css';
 
 import { createApp } from 'vue';
@@ -22,7 +22,7 @@ import {
   Empty
 } from 'vant';
 import { createPinia } from 'pinia';
-import inputDblclickSelect from '../../../shared-ui/directives/input-dblclick-select';
+import inputDblclickSelect from './directives/input-dblclick-select';
 
 // 应用主题
 function applyTheme(theme: string) {

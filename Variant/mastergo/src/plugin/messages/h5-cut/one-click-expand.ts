@@ -1,6 +1,6 @@
-import { MessageType } from '../../../../src/messages';
-import { genExpandFrame } from '../core';
-import { deepMerge } from '../../../../src/plugin/utils';
+import { MessageType } from '../../../../../src/messages';
+import { genExpandFrame } from '../../core';
+import { deepMerge } from '../../../../../src/plugin/utils';
 
 // 定义FILL_RULE常量
 const FILL_RULE = {
@@ -115,3 +115,4 @@ export default {
   type: MessageType.ONE_CLICK_EXPAND,
   handler,
 };
+

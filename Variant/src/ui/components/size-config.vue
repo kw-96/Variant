@@ -20,9 +20,9 @@
 </template>
 
 <script lang="ts" setup>
-import { ConfigSelector } from '../../../../shared-ui';
-import useStandardConfigs from '../../../../shared-ui/hooks/useStandardConfigs';
-import { usePopup } from '../../../../shared-ui/hooks/usePopup';
+import ConfigSelector from './ConfigSelector.vue';
+import useStandardConfigs from '../hooks/useStandardConfigs';
+import { usePopup } from '../hooks/usePopup';
 import AddSizeConfig from './add-size-config.vue';
 import StandardSize from './standard-size.vue';
 import { watch } from 'vue';

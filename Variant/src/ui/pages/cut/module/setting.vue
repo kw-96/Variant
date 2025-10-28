@@ -77,7 +77,7 @@
 <script lang="ts" setup>
 import { ref } from 'vue';
 import { FILL_RULE, HEAD_PIC_EXPAND_RULE } from '../../../../config/rule';
-import { getExpandRules } from '../../../js/setting/one-click-expand';
+import { getExpandRules } from '../../../hooks/setting-one-click-expand';
 
 const props = defineProps({
   settingData: {

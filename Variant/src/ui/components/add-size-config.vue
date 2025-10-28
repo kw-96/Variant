@@ -19,11 +19,11 @@
 
 <script lang="ts" setup>
 import * as XLSX from 'xlsx';
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { showToast } from 'vant';
 import SizeConfig from './size-config.vue';
-import { DataFileDropZone } from '../../../../shared-ui';
-import { generateRandomId } from '../../../../shared-ui/utils/common';
+import DataFileDropZone from './DataFileDropZone.vue';
+import { generateRandomId } from '../utils/common';
 
 const parsedConfigs = ref<any[]>([]); // 保存所有导入的配置
 const validFiles = ref<string[]>([]); // 保存符合条件的 .xlsx 文件名
