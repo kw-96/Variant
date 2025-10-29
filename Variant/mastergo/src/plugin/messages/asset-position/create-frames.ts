@@ -1,6 +1,6 @@
 import { MessageType } from '../../../../../src/messages';
 import { setSafeArea } from './safe-area';
-import { categorizeItems, calculateMaxDimensions, LayoutItem } from '../../utils/layout-utils';
+import { LayoutItem, applyLayout, LayoutConfig } from '../../utils/layout-utils';
 
 interface FrameData extends LayoutItem {
   name: string;
@@ -27,118 +27,69 @@ function handler(data: FrameData[]) {
   }
 
   const selection = currentPage.selection;
-  if (selection.length === 0) {
-    mg.notify('请先选择一个模板图层', { timeout: 2000 });
-    return;
-  }
-
-  const template = selection[0];
+  const template = selection.length > 0 ? selection[0] : null;
+  
   const gap = 30;
 
-  // 获取视口位置
-  const viewportBounds = (mg as any).viewport?.bounds || { x: 0, y: 0, width: 800, height: 600 };
-  const viewX = viewportBounds.x;
-  const viewY = viewportBounds.y;
+  // 计算起始位置
+  let startX: number;
+  let startY: number;
+  
+  if (selection.length > 0) {
+    // 如果有选中节点，从选中节点右侧开始排列（距离为2倍gap）
+    const selectedNode = selection[0];
+    startX = selectedNode.x + selectedNode.width + gap * 2;
+    startY = selectedNode.y;
+  } else {
+    // 如果没有选中节点，使用画布视口中心位置
+    const viewportCenter = (mg as any).viewport.center;
+    startX = viewportCenter.x;
+    startY = viewportCenter.y;
+  }
 
-  // 分类画板（包含 KV）
-  const categories = categorizeItems(data, true);
-
-  // 计算 maxW 和 maxH
-  const { maxW, maxH } = calculateMaxDimensions(categories.landscape, categories.portrait);
-
-  // 1. 处理 KV（横向排列）
-  const kvH: number[] = [0];
-  let currentX = viewX;
-  let currentY = viewY;
-
-  categories.kv.forEach(item => {
+  // 第一步：先创建所有画板（放在临时位置，稍后统一排列）
+  const frames: Array<{ frame: any; data: FrameData }> = [];
+  
+  data.forEach((item) => {
     const isPng = item.type?.toLowerCase() === 'png';
-    const frame = createFrame(item, currentX, currentY, isPng);
-    cloneComponent(frame, template, item);
-    currentX += item.w + gap;
-    kvH.push(item.h);
+    // 临时位置，后续会统一排列
+    const frame = createFrame(item, 0, 0, isPng);
+    if (template) {
+      cloneComponent(frame, template, item);
+    }
+    // 确保安全区矩形位于容器最上层（在组件克隆之后）
+    bringSafeAreasToTop(frame);
+    frames.push({ frame, data: item });
   });
 
-  // 2. 处理横版（横向排列）
-  currentX = viewX;
-  currentY = viewY + Math.max(...kvH) + gap;
-  
-  const lineH: number[] = [];
-  let lineAllW = 0;
-  
-  categories.landscape.forEach((item, i) => {
-    const isPng = item.type?.toLowerCase() === 'png';
-    const frame = createFrame(item, currentX, currentY, isPng);
-    cloneComponent(frame, template, item);
-    
-    lineAllW += item.w + gap;
-    lineH.push(item.h);
-    
-    const nextItem = categories.landscape[i + 1];
-    if (nextItem && (lineAllW + nextItem.w) <= maxW) {
-      currentX += item.w + gap;
-    } else {
-      currentX = viewX;
-      currentY += Math.max(...lineH) + gap;
-      lineH.length = 0;
-      lineAllW = 0;
-    }
-  });
+  // 第二步：分类画板（横版、竖版、方形）
+  const frameCategories = {
+    landscape: frames.filter(f => f.data.w > f.data.h),
+    portrait: frames.filter(f => f.data.w < f.data.h),
+    square: frames.filter(f => f.data.w === f.data.h),
+  };
 
-  // 3. 处理竖版（纵向排列）
-  currentX = viewX + maxW + gap;
-  currentY = viewY + Math.max(...kvH) + gap;
-  
-  const lineW: number[] = [];
-  let lineAllH = 0;
-  
-  categories.portrait.forEach((item, i) => {
-    let isPng = item.type?.toLowerCase() === 'png';
-    if (item.name && item.name.split('弹窗').length > 1) {
-      isPng = true;
-    }
-    const frame = createFrame(item, currentX, currentY, isPng);
-    cloneComponent(frame, template, item);
-    
-    lineAllH += item.h + gap;
-    lineW.push(item.w);
-    
-    const nextItem = categories.portrait[i + 1];
-    if (nextItem && (lineAllH + nextItem.h) <= maxH) {
-      currentY += item.h + gap;
-    } else {
-      currentY = viewY + Math.max(...kvH) + gap;
-      currentX += Math.max(...lineW) + gap;
-      lineW.length = 0;
-      lineAllH = 0;
-    }
-  });
+  // 第三步：使用统一的布局算法进行排列
+  const layoutConfig: LayoutConfig = {
+    x: startX,
+    y: startY,
+    gap
+  };
 
-  // 4. 处理方形（横向排列）
-  currentX = viewX + maxW + gap;
-  currentY = viewY + Math.max(...kvH) + gap + maxH;
-  
-  lineH.length = 0;
-  lineAllW = 0;
-  
-  categories.square.forEach((item, i) => {
-    const isPng = item.type?.toLowerCase() === 'png';
-    const frame = createFrame(item, currentX, currentY, isPng);
-    cloneComponent(frame, template, item);
-    
-    lineAllW += item.w + gap;
-    lineH.push(item.h);
-    
-    const nextItem = categories.square[i + 1];
-    if (nextItem && (lineAllW + nextItem.w) <= maxW) {
-      currentX += item.w + gap;
-    } else {
-      currentX = viewX + maxW + gap;
-      currentY += Math.max(...lineH) + gap;
-      lineH.length = 0;
-      lineAllW = 0;
+  applyLayout(
+    frameCategories.landscape.map(f => f.data),
+    frameCategories.portrait.map(f => f.data),
+    frameCategories.square.map(f => f.data),
+    layoutConfig,
+    (item, x, y) => {
+      // 找到对应的画板并设置位置
+      const frameItem = frames.find(f => f.data === item);
+      if (frameItem) {
+        frameItem.frame.x = x;
+        frameItem.frame.y = y;
+      }
     }
-  });
+  );
 
   mg.notify(`成功创建 ${data.length} 个画板`, { timeout: 2000 });
 }
@@ -155,15 +106,19 @@ function createFrame(item: FrameData, x: number, y: number, isPng: boolean): any
   
   // 设置名称
   const minName = `${item.name} ${item.w}×${item.h}`;
-  const maxName = `${item.name} ${item.s}k ${item.w}×${item.h}`;
+  const maxName = `${item.name} ${item.s} ${item.w}×${item.h}`;
   node.name = item.s ? maxName : minName;
   
-  // 设置插件数据
-  if (item.s) {
-    node.setPluginData('s', String(item.s));
-  }
-  if (item.type) {
-    node.setPluginData('type', item.type);
+  // 设置插件数据（如果 API 存在）
+  try {
+    if (item.s && typeof node.setPluginData === 'function') {
+      node.setPluginData('s', String(item.s));
+    }
+    if (item.type && typeof node.setPluginData === 'function') {
+      node.setPluginData('type', item.type);
+    }
+  } catch (e) {
+    // setPluginData 可能不存在或出错，忽略
   }
   
   // PNG 类型需要透明填充
@@ -175,9 +130,14 @@ function createFrame(item: FrameData, x: number, y: number, isPng: boolean): any
   const currentPage = (mg as any).document?.currentPage;
   currentPage.appendChild(node);
   
-  // 设置安全区
-  if (item.safeArea) {
-    setSafeArea(node, item.w, item.h, item.safeArea);
+  // 设置安全区（如果存在）
+  try {
+    if (item.safeArea) {
+      setSafeArea(node, item.w, item.h, item.safeArea);
+    }
+  } catch (e) {
+    // 安全区设置失败不影响画板创建
+    console.warn('设置安全区失败:', e);
   }
   
   return node;
@@ -207,6 +167,24 @@ function cloneComponent(frame: any, template: any, item: FrameData): void {
   instance.height = item.h;
   instance.x = 0;
   instance.y = 0;
+}
+
+/**
+ * 将安全区矩形移到容器最上层
+ * @param frame 画板节点
+ */
+function bringSafeAreasToTop(frame: any): void {
+  if (!frame || !frame.children) return;
+  
+  // 找到所有安全区矩形（名称以 safeArea- 开头）
+  const safeAreaRectangles = frame.children.filter((child: any) => 
+    child.name && child.name.startsWith('safeArea-')
+  );
+  
+  // 将所有安全区矩形移到最上层（移动到 children 数组末尾）
+  safeAreaRectangles.forEach((rectangle: any) => {
+    frame.appendChild(rectangle);
+  });
 }
 
 export default {

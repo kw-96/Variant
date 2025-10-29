@@ -17,6 +17,7 @@ import autoLayout from './messages/asset-position/auto-layout';
 import autoAddComponent from './messages/asset-position/auto-add-component';
 import getFrame from './messages/asset-position/get-frame';
 import importImages from './messages/asset-position/import-images';
+import exportImages from './messages/asset-position/export-images';
 
 // H5切图功能模块
 import oneClickCut from './messages/h5-cut/one-click-cut';
@@ -36,6 +37,7 @@ const messages = [
   autoAddComponent,
   getFrame,
   importImages,
+  exportImages,
   
   // H5切图
   oneClickCut,

@@ -116,3 +116,92 @@ export function shouldBreakColumn(
   return currentTotalHeight + nextItem.h > maxHeight;
 }
 
+/**
+ * 统一的布局配置
+ */
+export interface LayoutConfig {
+  x: number;
+  y: number;
+  gap: number;
+}
+
+/**
+ * 统一的布局回调接口
+ * @param item 当前处理的元素
+ * @param x 元素的 x 坐标
+ * @param y 元素的 y 坐标
+ */
+export type LayoutCallback<T extends LayoutItem> = (item: T, x: number, y: number) => void;
+
+/**
+ * 统一的布局算法
+ * 根据元素分类（横版、竖版、方形）自动排列
+ */
+export function applyLayout<T extends LayoutItem>(
+  landscape: T[],
+  portrait: T[],
+  square: T[],
+  config: LayoutConfig,
+  callback: LayoutCallback<T>
+): void {
+  const { x: startX, y: startY, gap } = config;
+  
+  // 记录横版实际占用的最大宽度（用于计算竖版起始位置）
+  let actualLandscapeWidth = 0;
+  let currentY = startY;
+
+  // 1. 排列横版元素：按宽度从大到小排序，从上到下排列
+  const sortedLandscape = [...landscape].sort((a, b) => b.w - a.w);
+  
+  sortedLandscape.forEach((item, i) => {
+    callback(item, startX, currentY);
+    
+    // 更新横版实际占用的最大宽度
+    actualLandscapeWidth = Math.max(actualLandscapeWidth, item.w);
+    
+    // 下一个横版的Y位置 = 当前Y + 当前横版高度 + 间距
+    if (i < sortedLandscape.length - 1) {
+      currentY += item.h + gap;
+    }
+  });
+
+  // 2. 排列竖版元素：按高度从大到小排序，从左到右排列
+  // 如果有横版，竖版从横版右侧开始；如果没有横版，竖版直接从起始位置开始
+  const portraitStartX = landscape.length > 0 
+    ? startX + actualLandscapeWidth + gap 
+    : startX;
+  
+  const sortedPortrait = [...portrait].sort((a, b) => b.h - a.h);
+  let currentX = portraitStartX;
+  
+  sortedPortrait.forEach((item, i) => {
+    callback(item, currentX, startY);
+    
+    // 下一个竖版的X位置 = 当前X + 当前竖版宽度 + 间距
+    if (i < sortedPortrait.length - 1) {
+      currentX += item.w + gap;
+    }
+  });
+
+  // 3. 排列方形元素：按宽度从大到小排序，从左到右排列
+  // 方形位于竖版下方，起始位置为竖版的右侧
+  const squareStartX = portrait.length > 0
+    ? currentX + gap  // 如果有竖版，从最后一个竖版右侧开始
+    : portraitStartX;  // 如果没有竖版，从竖版起始位置开始
+  const squareStartY = landscape.length > 0
+    ? currentY + gap  // 如果有横版，从最后一个横版下方开始
+    : startY;          // 如果没有横版，从起始位置开始
+  
+  const sortedSquare = [...square].sort((a, b) => b.w - a.w);
+  let squareX = squareStartX;
+  
+  sortedSquare.forEach((item, i) => {
+    callback(item, squareX, squareStartY);
+    
+    // 下一个方形的X位置 = 当前X + 当前方形宽度 + 间距
+    if (i < sortedSquare.length - 1) {
+      squareX += item.w + gap;
+    }
+  });
+}
+

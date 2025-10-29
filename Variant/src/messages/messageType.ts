@@ -21,4 +21,9 @@ export enum MessageType {
   GET_FRAME = 'getFrame',
   IMPORT_IMAGES = 'importImages',
   CHANGE_TAB = 'changeTab',
+  
+  // 导出相关
+  EXPORT_IMAGES = 'exportImages',
+  FRAME_EXPORT = 'frameExport',
+  IMG_EXPORT = 'imgExport',
 }
