@@ -153,6 +153,11 @@ const deleteItem = (index: number) => {
   .list {
     padding-right: 6px;
   }
+
+  /* 调整“全选”文本颜色为次要文字色（提高优先级避免被默认色覆盖） */
+  :global(.van-checkbox__label) {
+    color: var(--text-secondary) !important;
+  }
 }
 
 .van-row {

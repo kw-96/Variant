@@ -1,29 +1,53 @@
 <template>
-  <div :class="$style.appContainer">
-    <!-- 左侧导航栏 -->
-    <div :class="$style.navSidebar">
-      <div
-        v-for="(navItem, navIdx) in navList"
-        :key="navIdx"
-        :class="[$style.navItem, { [$style.active]: activeNav === navIdx }]"
-        @click="activeNav = navIdx"
-      >
-        {{ navItem.name }}
+  <div :class="[$style.appContainer, { [$style.collapsed]: isCollapsed }]">
+    <!-- 小窗口状态：只显示导航 -->
+    <template v-if="isCollapsed">
+      <div :class="$style.collapsedNav">
+        <div
+          v-for="(navItem, navIdx) in navList"
+          :key="navIdx"
+          :class="$style.collapsedNavItem"
+          @click="handleNavClickInCollapsed(navIdx)"
+        >
+          {{ navItem.name }}
+        </div>
       </div>
-      <!-- 显隐安全区按钮 -->
-      <div
-        :class="[$style.safeAreaBtn, { [$style.active]: safeAreaVisible && hasSafeArea }]"
-        @click="handleToggleSafeArea"
-        :title="hasSafeArea ? (safeAreaVisible ? '隐藏安全区' : '显示安全区') : '请选中包含安全区的容器'"
-      >
-        <span :class="$style.btnText">
-          <span :class="$style.btnLine">显/隐</span>
-          <span :class="$style.btnLine">安全区</span>
-        </span>
+    </template>
+    
+    <!-- 常规状态：完整布局 -->
+    <template v-else>
+      <!-- 左侧导航栏 -->
+      <div :class="$style.navSidebar">
+        <div
+          v-for="(navItem, navIdx) in navList"
+          :key="navIdx"
+          :class="[$style.navItem, { [$style.active]: activeNav === navIdx }]"
+          @click="activeNav = navIdx"
+        >
+          {{ navItem.name }}
+        </div>
+        <!-- 显隐安全区按钮 -->
+        <div
+          :class="[$style.safeAreaBtn, { [$style.active]: safeAreaVisible && hasSafeArea }]"
+          @click="handleToggleSafeArea"
+          :title="hasSafeArea ? (safeAreaVisible ? '隐藏安全区' : '显示安全区') : '请选中包含安全区的容器'"
+        >
+          <span :class="$style.btnText">
+            <span :class="$style.btnLine">显/隐</span>
+            <span :class="$style.btnLine">安全区</span>
+          </span>
+        </div>
+        <!-- 收起按钮 -->
+        <div
+          :class="$style.collapseBtn"
+          @click="handleCollapse"
+          title="收起窗口"
+        >
+          <span :class="$style.btnText">收起</span>
+        </div>
       </div>
-    </div>
-    <!-- 右侧内容区 -->
-    <div :class="$style.contentArea">
+      <!-- 右侧内容区 -->
+      <div :class="$style.contentArea">
       <!-- 有子标签时显示标签栏 -->
       <template v-if="currentPageList.length > 0">
         <van-tabs :key="activeNav" v-model:active="activeSubTab" :class="$style.tabs">
@@ -40,7 +64,9 @@
           <component :is="currentSinglePage" />
         </div>
       </template>
-    </div>
+      </div>
+    </template>
+    
     <!-- 全局弹窗 -->
     <van-popup
       v-model:show="isVisible"
@@ -67,7 +93,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
 import { providePopup } from './hooks/usePopup';
 import Cut from './pages/cut/index.vue';
 import ButtonSizeExpansion from './pages/button-size-expansion/index.vue';
@@ -181,6 +207,9 @@ addMessageListener(MessageType.SELECTION_CHANGE, data => {
 const safeAreaVisible = ref(false);
 const hasSafeArea = ref(false);
 
+// 窗口收起状态
+const isCollapsed = ref(false);
+
 // 查询安全区状态
 function checkSafeAreaStatus() {
   sendMsgToPlugin(MessageType.GET_SAFE_AREA_STATUS);
@@ -202,6 +231,35 @@ addMessageListener(MessageType.SAFE_AREA_STATUS, (data: { visible: boolean; hasS
 
 // 初始化时检查安全区状态
 checkSafeAreaStatus();
+
+// 处理小窗口状态下的导航点击
+function handleNavClickInCollapsed(navIdx: number) {
+  activeNav.value = navIdx;
+  // 展开窗口
+  isCollapsed.value = false;
+  sendMsgToPlugin(MessageType.EXPAND_WINDOW);
+}
+
+// 处理收起按钮点击
+function handleCollapse() {
+  isCollapsed.value = true;
+  // 等待渲染后测量小窗口高度，并请求主线程调整窗口尺寸
+  nextTick(() => {
+    try {
+      const collapsedNavEl = document.querySelector('[class*="collapsedNav"]') as HTMLElement | null;
+      const desiredHeight = Math.ceil((collapsedNavEl?.getBoundingClientRect().height || 0) + 24); // 额外留白
+      const desiredWidth = 70; // 与左侧导航宽度一致
+      sendMsgToPlugin(MessageType.COLLAPSE_WINDOW, { width: desiredWidth, height: desiredHeight });
+    } catch {
+      sendMsgToPlugin(MessageType.COLLAPSE_WINDOW, { width: 70 });
+    }
+  });
+}
+
+// 监听窗口状态变化
+addMessageListener(MessageType.WINDOW_STATE_CHANGED, (data: { collapsed: boolean }) => {
+  isCollapsed.value = data.collapsed;
+});
 </script>
 
 <style lang="less" module>
@@ -210,6 +268,9 @@ checkSafeAreaStatus();
   display: flex;
   overflow: hidden;
 }
+
+// 收起状态样式：不强制宽度，由主线程 resize 控制 iframe 尺寸
+.collapsed { display: block; }
 
 .navSidebar {
   width: 70px;
@@ -231,7 +292,7 @@ checkSafeAreaStatus();
   border-left: 3px solid transparent;
   
   &:hover {
-    background-color: var(--bg-primary);
+    background-color: var(--input-bg);
     color: var(--text-primary);
   }
   
@@ -245,7 +306,7 @@ checkSafeAreaStatus();
 
 .safeAreaBtn {
   position: absolute;
-  bottom: 12px;
+  bottom: 50px;
   left: 8px;
   right: 8px;
   padding: 4px;
@@ -259,7 +320,7 @@ checkSafeAreaStatus();
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  background-color: var(--bg-primary);
+  background-color: var(--input-bg);
   border: 1px solid var(--divider-color);
   
   &:hover {
@@ -286,6 +347,57 @@ checkSafeAreaStatus();
     display: block;
     font-size: 11px;
     white-space: nowrap;
+  }
+}
+
+.collapseBtn {
+  position: absolute;
+  bottom: 12px;
+  left: 8px;
+  right: 8px;
+  padding: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-align: center;
+  border-radius: 4px;
+  background-color: var(--input-bg);
+  border: 1px solid var(--divider-color);
+  
+  &:hover {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    border-color: var(--button-primary-bg);
+  }
+  
+  .btnText {
+    display: block;
+    white-space: nowrap;
+  }
+}
+
+// 小窗口状态样式
+.collapsedNav {
+  width: 100%;
+  padding: 0 0 12px 0; // 与 .navSidebar 一致
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-secondary);
+}
+
+.collapsedNavItem {
+  padding: 12px 8px; // 与 .navItem 一致
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--text-secondary);
+  font-size: 13px; // 与 .navItem 一致
+  text-align: center;
+  border-left: 3px solid transparent; // 与 .navItem 一致
+  
+  &:hover {
+    background-color: var(--input-bg);
+    color: var(--text-primary);
   }
 }
 
@@ -327,7 +439,7 @@ checkSafeAreaStatus();
   padding: 12px;
   justify-content: space-between;
   border-bottom: 1px solid var(--divider-color);
-  background-color: var(--bg-primary);
+  background-color: var(--input-bg);
   color: var(--text-primary);
 }
 </style>

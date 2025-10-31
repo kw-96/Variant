@@ -334,18 +334,18 @@ em {
 
 /* GitHub Dark Theme */
 html[data-theme='dark'] {
-  --bg-primary: #0d1117;                    /* GitHub: color-canvas-default */
-  --bg-secondary: #161b22;                 /* GitHub: color-canvas-subtle */
-  --text-primary: #f0f6fc;                 /* GitHub: color-fg-default */
-  --text-secondary: #8b949e;               /* GitHub: color-fg-muted */
+  --bg-primary: #080808;                    /* GitHub: color-canvas-default */
+  --bg-secondary: #171717;                 /* GitHub: color-canvas-subtle */
+  --text-primary: #ffffff;                 /* GitHub: color-fg-default */
+  --text-secondary: #ffffff;               /* GitHub: color-fg-muted */
   --border-color: #30363d;                 /* GitHub: color-border-default */
   --divider-color: #21262d;                /* GitHub: color-border-muted */
-  --scrollbar-track: #161b22;              /* GitHub: color-canvas-subtle */
+  --scrollbar-track: #171717;              /* GitHub: color-canvas-subtle */
   --scrollbar-thumb: #30363d;              /* GitHub: color-border-default */
   --scrollbar-thumb-hover: #8b949e;        /* GitHub: color-fg-muted */
   
   /* 输入框和表单元素专用颜色 */
-  --input-bg: #0d1117;                     /* GitHub: color-canvas-default */
+  --input-bg: #212121;                     /* GitHub: color-canvas-default */
   --input-border: #30363d;                 /* GitHub: color-border-default */
   --input-text: #f0f6fc;                   /* GitHub: color-fg-default */
   --input-placeholder: #8b949e;            /* GitHub: color-fg-muted */
@@ -353,11 +353,11 @@ html[data-theme='dark'] {
   /* 按钮和交互元素颜色 - GitHub蓝色 */
   --button-primary-bg: #2f81f7;            /* GitHub: color-accent-emphasis */
   --button-primary-text: #ffffff;           /* 白色文字 */
-  --button-secondary-bg: #161b22;         /* GitHub: color-canvas-subtle */
+  --button-secondary-bg: #171717;         /* GitHub: color-canvas-subtle */
   --button-secondary-text: #f0f6fc;        /* GitHub: color-fg-default */
   
   /* 标签和徽章颜色 */
-  --tag-bg: #161b22;                       /* GitHub: color-canvas-subtle */
+  --tag-bg: #171717;                       /* GitHub: color-canvas-subtle */
   --tag-text: #f0f6fc;                     /* GitHub: color-fg-default */
   --tag-border: #30363d;                  /* GitHub: color-border-default */
 }

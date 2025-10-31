@@ -31,4 +31,9 @@ export enum MessageType {
   TOGGLE_SAFE_AREA = 'toggleSafeArea',
   GET_SAFE_AREA_STATUS = 'getSafeAreaStatus',
   SAFE_AREA_STATUS = 'safeAreaStatus',
+  
+  // 窗口控制相关
+  COLLAPSE_WINDOW = 'collapseWindow',
+  EXPAND_WINDOW = 'expandWindow',
+  WINDOW_STATE_CHANGED = 'windowStateChanged',
 }

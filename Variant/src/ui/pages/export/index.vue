@@ -59,9 +59,6 @@
             <div :class="$style.dimRight">{{ item.width }} × {{ item.height }}</div>
           </div>
 
-          <!-- 内容区（保留占位，用于下方状态与控件） -->
-          <div :class="$style.tagContent"></div>
-
           <!-- 左下：大小与压缩状态 -->
           <div :class="$style.statusBox">
             <template v-if="item.imgSize !== undefined">
@@ -387,7 +384,7 @@ onUnmounted(() => {
   flex-direction: column;
   border: 1px solid var(--border-color);
   border-radius: 4px;
-  background-color: var(--bg-primary);
+  background-color: var(--input-bg);
   overflow: hidden;
 }
 
@@ -411,7 +408,7 @@ onUnmounted(() => {
 .tagItem {
   position: relative;
   padding: 12px 12px 36px 12px; // 预留底部空间放控件
-  background-color: var(--bg-primary);
+  background-color: var(--input-bg);
   border: 1px solid var(--border-color);
   border-radius: 4px;
   cursor: pointer;
@@ -419,10 +416,10 @@ onUnmounted(() => {
 
 .closeBtn {
   position: absolute;
-  left: 8px;
-  top: 6px;
-  width: 20px;
-  height: 20px;
+  left: 0px;
+  top: 0px;
+  width: 16px;
+  height: 16px;
   line-height: 18px;
   text-align: center;
   border: 1px solid var(--border-color);
@@ -439,23 +436,16 @@ onUnmounted(() => {
 
 .header {
   position: absolute;
-  left: 36px; // 清除按钮右侧留白
+  left: 20px; // 清除按钮右侧留白
   right: 12px;
-  top: 6px;
-  height: 20px;
+  top: 0px;
+  height: 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
 .dimRight { font-size: 11px; color: var(--text-secondary); }
-
-.tagContent {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding-top: 24px; // 顶部行占位
-}
 
 .tagName {
   font-size: 12px;

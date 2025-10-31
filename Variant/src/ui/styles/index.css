@@ -1,8 +1,5 @@
 /* 共享UI库 - 样式入口文件 */
 
-/* 导入GitHub配色方案 */
-@import './variables.css';
-
 /* 导入基础样式重置 */
 @import './reset.css';
 

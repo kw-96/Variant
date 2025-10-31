@@ -28,6 +28,9 @@ import genExpandPreview from './messages/h5-cut/gen-expand-preview';
 import autoGenerateButtons from './messages/h5-cut/auto-generate-buttons';
 import genButtonPreview from './messages/h5-cut/gen-button-preview';
 
+// 窗口控制功能模块
+import { collapseWindow, expandWindow } from './messages/window-control';
+
 // 注册所有消息处理器
 const messages = [
   // 基础设施
@@ -49,6 +52,10 @@ const messages = [
   genExpandPreview,
   autoGenerateButtons,
   genButtonPreview,
+  
+  // 窗口控制
+  collapseWindow,
+  expandWindow,
 ];
 
 // Runs this code if the plugin is run in MasterGo
