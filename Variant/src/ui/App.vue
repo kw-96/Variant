@@ -267,6 +267,7 @@ addMessageListener(MessageType.WINDOW_STATE_CHANGED, (data: { collapsed: boolean
   height: 100vh;
   display: flex;
   overflow: hidden;
+  border-top: 1px solid var(--border-color);
 }
 
 // 收起状态样式：不强制宽度，由主线程 resize 控制 iframe 尺寸

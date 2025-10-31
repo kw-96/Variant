@@ -89,7 +89,6 @@ button[type="primary"] {
 .van-tabs__wrap {
   background-color: var(--input-bg) !important;
   border-bottom: 1px solid var(--border-color) !important;
-  border-top: 1px solid var(--border-color) !important;
 }
 
 .van-tabs__nav {
