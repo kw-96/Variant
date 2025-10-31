@@ -155,6 +155,7 @@ function handler(payload: ExportImagesPayload) {
     data: {
       frameData,
       action,
+      pageName: currentPage.name || '',
     },
   });
   

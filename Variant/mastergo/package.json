@@ -16,7 +16,8 @@
     "lint:fix": "eslint . --ext .vue,.js,.ts,.tsx --fix"
   },
   "dependencies": {
-    "@mastergo/plugin-typings": "^2.2.0"
-  },
-  "devDependencies": {}
+    "@mastergo/plugin-typings": "^2.2.0",
+    "fflate": "^0.8.2",
+    "file-saver": "^2.0.5"
+  }
 }
