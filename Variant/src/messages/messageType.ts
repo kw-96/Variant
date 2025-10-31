@@ -26,4 +26,9 @@ export enum MessageType {
   EXPORT_IMAGES = 'exportImages',
   FRAME_EXPORT = 'frameExport',
   IMG_EXPORT = 'imgExport',
+  
+  // 安全区相关
+  TOGGLE_SAFE_AREA = 'toggleSafeArea',
+  GET_SAFE_AREA_STATUS = 'getSafeAreaStatus',
+  SAFE_AREA_STATUS = 'safeAreaStatus',
 }

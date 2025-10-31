@@ -10,6 +10,17 @@
       >
         {{ navItem.name }}
       </div>
+      <!-- 显隐安全区按钮 -->
+      <div
+        :class="[$style.safeAreaBtn, { [$style.active]: safeAreaVisible && hasSafeArea }]"
+        @click="handleToggleSafeArea"
+        :title="hasSafeArea ? (safeAreaVisible ? '隐藏安全区' : '显示安全区') : '请选中包含安全区的容器'"
+      >
+        <span :class="$style.btnText">
+          <span :class="$style.btnLine">显/隐</span>
+          <span :class="$style.btnLine">安全区</span>
+        </span>
+      </div>
     </div>
     <!-- 右侧内容区 -->
     <div :class="$style.contentArea">
@@ -65,7 +76,7 @@ import Export from './pages/export/index.vue';
 import CreatePrototype from './pages/create-prototype/index.vue';
 import ExtendChannel from './pages/extend-channel/index.vue';
 import Toolbox from './pages/toolbox/index.vue';
-import { MessageType, addMessageListener } from '../messages';
+import { MessageType, addMessageListener, sendMsgToPlugin } from '../messages';
 import useGlobalStore from './store/useGlobalStore';
 
 // 提供全局弹窗实例
@@ -162,7 +173,35 @@ watch(activeNav, () => {
 
 addMessageListener(MessageType.SELECTION_CHANGE, data => {
   globalStore.selection = data;
+  // 选择变化时，查询安全区状态
+  checkSafeAreaStatus();
 });
+
+// 安全区状态
+const safeAreaVisible = ref(false);
+const hasSafeArea = ref(false);
+
+// 查询安全区状态
+function checkSafeAreaStatus() {
+  sendMsgToPlugin(MessageType.GET_SAFE_AREA_STATUS);
+}
+
+// 切换安全区显示/隐藏
+function handleToggleSafeArea() {
+  if (!hasSafeArea.value) {
+    return;
+  }
+  sendMsgToPlugin(MessageType.TOGGLE_SAFE_AREA);
+}
+
+// 监听安全区状态变化
+addMessageListener(MessageType.SAFE_AREA_STATUS, (data: { visible: boolean; hasSafeArea: boolean }) => {
+  safeAreaVisible.value = data.visible;
+  hasSafeArea.value = data.hasSafeArea;
+});
+
+// 初始化时检查安全区状态
+checkSafeAreaStatus();
 </script>
 
 <style lang="less" module>
@@ -179,6 +218,7 @@ addMessageListener(MessageType.SELECTION_CHANGE, data => {
   display: flex;
   flex-direction: column;
   padding: 0 0 12px 0;
+  position: relative;
 }
 
 .navItem {
@@ -200,6 +240,52 @@ addMessageListener(MessageType.SELECTION_CHANGE, data => {
     color: var(--text-primary);
     border-left-color: var(--button-primary-bg);
     font-weight: 500;
+  }
+}
+
+.safeAreaBtn {
+  position: absolute;
+  bottom: 12px;
+  left: 8px;
+  right: 8px;
+  padding: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-align: center;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--divider-color);
+  
+  &:hover {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    border-color: var(--button-primary-bg);
+  }
+  
+  &.active {
+    background-color: var(--button-primary-bg);
+    color: #fff;
+    border-color: var(--button-primary-bg);
+  }
+  
+  .btnText {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.2;
+    gap: 2px;
+  }
+  
+  .btnLine {
+    display: block;
+    font-size: 11px;
+    white-space: nowrap;
   }
 }
 

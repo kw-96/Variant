@@ -3,7 +3,7 @@
 // You can access browser APIs in the <script> tag inside "index.html" which has a
 // full browser environment (See https://mastergo.com/plugin-docs/how-plugins-run).
 
-import { addMessageListener, sendMsgToUI, MessageType } from '../../../src/messages';
+import { sendMsgToUI, MessageType } from '../../../src/messages';
 
 // ==================== 导入所有消息处理器 ====================
 // 按照功能模块分组组织，便于维护和扩展
@@ -18,6 +18,8 @@ import autoAddComponent from './messages/asset-position/auto-add-component';
 import getFrame from './messages/asset-position/get-frame';
 import importImages from './messages/asset-position/import-images';
 import exportImages from './messages/asset-position/export-images';
+import toggleSafeArea from './messages/asset-position/toggle-safe-area';
+import getSafeAreaStatus from './messages/asset-position/get-safe-area-status';
 
 // H5切图功能模块
 import oneClickCut from './messages/h5-cut/one-click-cut';
@@ -38,6 +40,8 @@ const messages = [
   getFrame,
   importImages,
   exportImages,
+  toggleSafeArea,
+  getSafeAreaStatus,
   
   // H5切图
   oneClickCut,
@@ -88,6 +92,12 @@ try {
   mg.on('selectionchange', () => {
     const currentPage = (mg as any).document?.currentPage;
     sendMsgToUI(MessageType.SELECTION_CHANGE, currentPage ? currentPage.selection || [] : []);
+    
+    // 当选择变化时，自动获取安全区状态
+    const getSafeAreaStatusHandler = messages.find((m: any) => m.type === MessageType.GET_SAFE_AREA_STATUS);
+    if (getSafeAreaStatusHandler) {
+      (getSafeAreaStatusHandler.handler as any)();
+    }
   });
   
   // 监听主题变化事件
