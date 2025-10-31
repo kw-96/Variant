@@ -109,9 +109,10 @@
 
 <script lang="ts" setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import * as XLSX from 'xlsx';
 import { sendMsgToPlugin, addMessageListener } from '../../../messages';
 import { MessageType } from '../../../messages';
+import { getExampleData } from './exampleData';
+import { handleExcelUpload as handleExcelFileUpload, handleJsonFileUpload, handleImageUpload } from '../../utils/fileUploadHandler';
 
 // 数据定义
 const dataText = ref('');
@@ -128,10 +129,13 @@ const imgInputRef = ref<HTMLInputElement>();
 const excelInputRef = ref<HTMLInputElement>();
 const fileInputRef = ref<HTMLInputElement>();
 
+// 监听器清理函数
+let getFrameListener: (() => void) | null = null;
+
 // 生命周期
 onMounted(() => {
   // 监听 getFrame 消息
-  addMessageListener(MessageType.GET_FRAME, (data: string[]) => {
+  getFrameListener = addMessageListener(MessageType.GET_FRAME, (data: string[]) => {
     handleGetFrame(data);
   });
 });
@@ -190,7 +194,11 @@ function removeTag(index: number) {
 }
 
 onUnmounted(() => {
-  // 清理监听器（如果有实现）
+  // 清理监听器
+  if (getFrameListener) {
+    getFrameListener();
+    getFrameListener = null;
+  }
 });
 
 /**
@@ -220,218 +228,78 @@ function textToList(text: string) {
 }
 
 /**
- * 裁剪图片为4096x4096的切片
- * @param w 图片宽度
- * @param h 图片高度
- * @param maxSize 切片最大尺寸
- */
-function creCutArea(w: number, h: number, maxSize: number = 4096) {
-  let W = w;
-  let H = h;
-  let cutW = 1;
-  let cutH = 1;
-  const cuts: any[] = [];
-
-  // 如果图片尺寸小于maxSize，直接返回
-  if (W <= maxSize && H <= maxSize) {
-    return [{ w: W, h: H, x: 0, y: 0 }];
-  }
-
-  // 计算需要切片的数量
-  cutW = Math.ceil(W / maxSize);
-  cutH = Math.ceil(H / maxSize);
-
-  const Ws = Math.ceil(W / cutW);
-  const Hs = Math.ceil(H / cutH);
-  const lastWs = W - (Ws * (cutW - 1));
-  const lastHs = H - (Hs * (cutH - 1));
-
-  let X = 0;
-  let Y = 0;
-
-  for (let i = 0; i < cutW * cutH; i++) {
-    const isLastRow = Math.floor(i / cutW) === cutH - 1;
-    const isLastCol = (i + 1) % cutW === 0;
-
-    let sliceW = isLastCol ? lastWs : Ws;
-    let sliceH = isLastRow ? lastHs : Hs;
-
-    cuts.push({ w: sliceW, h: sliceH, x: X, y: Y });
-
-    X += Ws;
-    if ((i + 1) % cutW === 0) {
-      X = 0;
-      Y += Hs;
-    }
-  }
-
-  return cuts;
-}
-
-/**
- * 裁剪图片为切片
- * @param file 图片文件
- */
-async function cutImgToCanvas(file: File): Promise<{ imgs: Uint8Array[], cuts: any[] }> {
-  return new Promise((resolve) => {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-
-    img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx?.drawImage(img, 0, 0);
-
-      // 计算切片
-      const cuts = creCutArea(img.width, img.height);
-      const cutImgs: Uint8Array[] = [];
-
-      cuts.forEach((cut) => {
-        const canvas2 = document.createElement('canvas');
-        canvas2.width = cut.w;
-        canvas2.height = cut.h;
-        const ctx2 = canvas2.getContext('2d');
-
-        if (ctx && ctx2) {
-          ctx2.drawImage(canvas, cut.x, cut.y, cut.w, cut.h, 0, 0, cut.w, cut.h);
-          const dataURL = canvas2.toDataURL('image/png');
-          const base64 = dataURL.split(',')[1];
-          const imgData = new Uint8Array(
-            atob(base64)
-              .split('')
-              .map((c) => c.charCodeAt(0))
-          );
-          cutImgs.push(imgData);
-        }
-      });
-
-      resolve({ imgs: cutImgs, cuts });
-      URL.revokeObjectURL(url);
-    };
-
-    img.src = url;
-  });
-}
-
-/**
  * 处理图片上传
  * 裁剪大图并导入
  */
-function handleImgUpload(event: Event) {
+async function handleImgUpload(event: Event) {
   const files = (event.target as HTMLInputElement).files;
   if (!files || files.length === 0) return;
-  
-  const imgType = ['png', 'jpg', 'jpeg', 'webp', 'jfif'];
-  const imageFiles: File[] = [];
-  
-  // 筛选图片文件
-  Array.from(files).forEach(file => {
-    const names = file.name.split('.');
-    const extension = names[names.length - 1].toLowerCase();
-    
-    if (imgType.indexOf(extension) !== -1) {
-      imageFiles.push(file);
-    }
-  });
 
-  if (imageFiles.length === 0) {
-    alert('没有有效的图片文件');
+  const result = await handleImageUpload(files);
+
+  if (!result.success) {
+    alert(result.error || '图片处理失败');
     return;
   }
 
   // 发送导入数量
-  sendMsgToPlugin(MessageType.IMPORT_IMAGES, imageFiles.length);
+  sendMsgToPlugin(MessageType.IMPORT_IMAGES, result.files.length);
 
-  // 处理每个图片文件
-  imageFiles.forEach((file) => {
-    const names = file.name.split('.');
-    const nameWithoutExt = names.slice(0, -1).join('.');
-
-    cutImgToCanvas(file).then(({ imgs, cuts }) => {
-      // 发送每个切片
-      sendMsgToPlugin(MessageType.IMPORT_IMAGES, imgs.map((img, i) => ({
-        img,
-        w: cuts[i].w,
-        h: cuts[i].h,
-        name: cuts.length > 1 ? `${nameWithoutExt}-${i + 1}` : nameWithoutExt,
-        x: cuts[i].x,
-        y: cuts[i].y,
-      })));
-    });
+  // 发送每个图片的切片
+  result.files.forEach((fileData) => {
+    sendMsgToPlugin(MessageType.IMPORT_IMAGES, fileData.slices.map((slice) => ({
+      img: slice.img,
+      w: slice.w,
+      h: slice.h,
+      name: slice.name,
+      x: slice.x,
+      y: slice.y,
+    })));
   });
 }
 
 /**
  * 处理Excel上传
  */
-function handleExcelUpload(event: Event) {
+async function handleExcelUpload(event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0];
   if (!file) return;
   
-  const reader = new FileReader();
+  const result = await handleExcelFileUpload(file);
   
-  reader.onload = (e) => {
-    try {
-      const data = new Uint8Array(e.target?.result as ArrayBuffer);
-      const workbook = XLSX.read(data, { type: 'array' });
-      
-      // 读取第一个工作表
-      const wsname = workbook.SheetNames[0];
-      const ws = workbook.Sheets[wsname];
-      
-      // 转换为JSON
-      const jsonData = XLSX.utils.sheet_to_json(ws);
-      
-      // 处理数据
-      frameData.value = jsonData as any[];
-      
-      // 生成标签并进入预览
-      updateTags(jsonData as any[]);
-      fillTextArea(jsonData as any[]);
-      isPreview.value = true;
-      
-      console.log('Excel数据加载成功:', jsonData.length, '条记录');
-    } catch (error) {
-      console.error('Excel解析失败:', error);
-      alert('Excel文件解析失败，请检查文件格式');
-    }
-  };
-  
-  reader.readAsArrayBuffer(file);
+  if (result.success) {
+    // 处理数据
+    frameData.value = result.data;
+    
+    // 生成标签并进入预览
+    updateTags(result.data);
+    fillTextArea(result.data);
+    isPreview.value = true;
+  } else {
+    alert(result.error || 'Excel文件解析失败');
+  }
 }
 
 /**
  * 处理JSON/XML文件上传
  */
-function handleFileUpload(event: Event) {
+async function handleFileUpload(event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0];
   if (!file) return;
   
-  const reader = new FileReader();
+  const result = await handleJsonFileUpload(file);
   
-  reader.onload = (e) => {
-    try {
-      const text = e.target?.result as string;
-      const jsonData = JSON.parse(text);
-      
-      // 处理数据
-      frameData.value = Array.isArray(jsonData) ? jsonData : [jsonData];
-      
-      // 生成标签并进入预览
-      updateTags(frameData.value);
-      fillTextArea(frameData.value);
-      isPreview.value = true;
-      
-      console.log('JSON数据加载成功:', frameData.value.length, '条记录');
-    } catch (error) {
-      console.error('文件解析失败:', error);
-      alert('文件解析失败，请检查文件格式');
-    }
-  };
-  
-  reader.readAsText(file);
+  if (result.success) {
+    // 处理数据
+    frameData.value = result.data;
+    
+    // 生成标签并进入预览
+    updateTags(result.data);
+    fillTextArea(result.data);
+    isPreview.value = true;
+  } else {
+    alert(result.error || '文件解析失败');
+  }
 }
 
 /**
@@ -502,9 +370,7 @@ function handleDrop(event: DragEvent) {
  * 加载示例数据
  */
 function loadExample() {
-  dataText.value = `name\tw\th\ts\ttype\tsafeArea
-游戏中心-闪屏（常规样式）\t1080\t2400\t500k\tjpg\tleft:96, right: 96, top: 336, bottom: 858;left:96, right: 624, top: 336, bottom: 1980;left:123, right: 126, top: 1590, bottom: 648
-游戏中心-节点推广\t984\t554\t1000k\tjpg\tleft:48, right: 48, top: 48, bottom: 50`;
+  dataText.value = getExampleData();
 }
 
 /**

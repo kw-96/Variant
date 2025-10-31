@@ -18,12 +18,12 @@
 </template>
 
 <script lang="ts" setup>
-import * as XLSX from 'xlsx';
 import { ref } from 'vue';
 import { showToast } from 'vant';
 import SizeConfig from './size-config.vue';
 import DataFileDropZone from './DataFileDropZone.vue';
 import { generateRandomId } from '../utils/common';
+import { handleExcelUpload } from '../utils/fileUploadHandler';
 
 const parsedConfigs = ref<any[]>([]); // 保存所有导入的配置
 const validFiles = ref<string[]>([]); // 保存符合条件的 .xlsx 文件名
@@ -41,58 +41,54 @@ const onConfirmImport = () => {
   emit('close');
 };
 
-const onFileDrop = (files: File[]) => {
+const onFileDrop = async (files: File[]) => {
   validFiles.value = []; // 清空之前的文件名
   parsedConfigs.value = []; // 清空之前的配置
 
   console.log('开始处理文件:', files.length);
 
+  // 筛选 Excel 文件
+  const excelFiles = files.filter(file => file.name.endsWith('.xlsx'));
+
+  if (excelFiles.length === 0) {
+    showToast('只支持.xlsx文件');
+    return;
+  }
+
   // 使用 Promise.all 确保所有文件处理完成后再更新
-  const filePromises = files.map(file => {
-    return new Promise<void>((resolve) => {
-      if (file.name.endsWith('.xlsx')) {
-        validFiles.value.push(file.name);
-        const reader = new FileReader();
-        reader.onload = e => {
-          const data = new Uint8Array(e.target?.result as ArrayBuffer);
-          const workbook = XLSX.read(data, { type: 'array' });
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
-          const json = XLSX.utils.sheet_to_json(worksheet);
+  const filePromises = excelFiles.map(async (file) => {
+    const result = await handleExcelUpload(file);
+    
+    if (result.success) {
+      validFiles.value.push(file.name);
+      
+      console.log('Excel解析结果:', result.data);
 
-          console.log('Excel解析结果:', json);
-
-          const newConfig = {
-            id: generateRandomId(),
-            platform: file.name.replace('.xlsx', ''),
-            options: json.map((item: any) => ({
-              id: generateRandomId(),
-              name: item['name'] || item['名称'],
-              width: item['w'] || item['宽度'],
-              height: item['h'] || item['高度'],
-              checked: false,
-            })),
-          };
-          
-          console.log('创建的新配置:', newConfig);
-          
-          // 将新配置添加到数组中
-          parsedConfigs.value.push(newConfig);
-          console.log('更新后的parsedConfigs:', parsedConfigs.value);
-          resolve();
-        };
-        reader.readAsArrayBuffer(file);
-      } else {
-        showToast('只支持.xlsx文件');
-        resolve();
-      }
-    });
+      const newConfig = {
+        id: generateRandomId(),
+        platform: file.name.replace('.xlsx', ''),
+        options: result.data.map((item: any) => ({
+          id: generateRandomId(),
+          name: item['name'] || item['名称'],
+          width: item['w'] || item['宽度'],
+          height: item['h'] || item['高度'],
+          checked: false,
+        })),
+      };
+      
+      console.log('创建的新配置:', newConfig);
+      
+      // 将新配置添加到数组中
+      parsedConfigs.value.push(newConfig);
+      console.log('更新后的parsedConfigs:', parsedConfigs.value);
+    } else {
+      showToast(result.error || '文件解析失败');
+    }
   });
 
   // 等待所有文件处理完成
-  Promise.all(filePromises).then(() => {
-    console.log('所有文件处理完成，最终 parsedConfigs:', parsedConfigs.value);
-  });
+  await Promise.all(filePromises);
+  console.log('所有文件处理完成，最终 parsedConfigs:', parsedConfigs.value);
 };
 </script>
 
