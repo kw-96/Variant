@@ -17,6 +17,8 @@
     "build:variant": "npm run build:variant:figma && npm run build:variant:mastergo",
     "build:variant:figma": "cd Variant/figma && npm run build",
     "build:variant:mastergo": "cd Variant/mastergo && npm run build",
+    "build:figma": "npm run build:variant:figma",
+    "build:mastergo": "npm run build:variant:mastergo",
     "install:all": "npm install && cd Variant/src && npm install && cd ../figma && npm install && cd ../mastergo && npm install",
     "clean": "rm -rf node_modules Variant/*/node_modules",
     "lint": "npm run lint:variant",

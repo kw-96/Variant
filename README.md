@@ -96,11 +96,11 @@
    npm run build
    
    # 构建特定工具的所有版本
-   npm run build:variant        # Variant工具集的Figma和MasterGo版本
+   npm run build        # Variant工具集的Figma和MasterGo版本
    
    # 构建特定工具的特定版本
-   npm run build:variant:figma          # Variant工具集 Figma版本
-   npm run build:variant:mastergo       # Variant工具集 MasterGo版本
+   npm run build:figma          # Variant工具集 Figma版本
+   npm run build:mastergo       # Variant工具集 MasterGo版本
    ```
 
 5. **代码检查**

@@ -187,8 +187,15 @@ const handleTabChange = (tabIndex: number) => {
   activeSubTab.value = tabIndex;
 };
 
+// 切换导航和子标签的函数
+const setActiveNavAndTab = (navIndex: number, subTabIndex: number = 0) => {
+  activeNav.value = navIndex;
+  activeSubTab.value = subTabIndex;
+};
+
 // 将切换函数暴露给子组件
 (window as any).__appTabSwitch = handleTabChange;
+(window as any).__appSetNav = setActiveNavAndTab;
 
 // 当导航切换时重置子标签
 watch(activeNav, () => {
