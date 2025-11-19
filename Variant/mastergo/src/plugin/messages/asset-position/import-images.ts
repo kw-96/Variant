@@ -30,24 +30,43 @@ function handleImportNum(num: number) {
  * @param data 切片数据数组
  */
 async function handlePixelIm(data: any[]) {
+  if (!data?.length) {
+    return;
+  }
+
   const loading = mg.notify('文件较大时会卡顿，请耐心等待', {
     position: 'bottom',
     timeout: 2000,
   });
 
   const currentPage = (mg as any).document?.currentPage;
-  const viewX = currentPage.viewport?.bounds?.x || 0;
-  const viewY = currentPage.viewport?.bounds?.y || 0;
+  const viewport = (mg as any).viewport ?? currentPage?.viewport;
+  const bounds = viewport?.bounds;
+  const centerX =
+    viewport?.center?.x ??
+    (bounds ? bounds.x + bounds.width / 2 : 0);
+  const centerY =
+    viewport?.center?.y ??
+    (bounds ? bounds.y + bounds.height / 2 : 0);
 
-  let x = viewX + xx;
-  let y = viewY + yy;
+  const totalWidth = data.reduce(
+    (max, item) => Math.max(max, item.x + item.w),
+    0
+  );
+  const totalHeight = data.reduce(
+    (max, item) => Math.max(max, item.y + item.h),
+    0
+  );
 
-  const nodes: any[] = [];
+  const baseX = centerX - totalWidth / 2 + xx;
+  const baseY = centerY - totalHeight / 2 + yy;
+
+  const batchNodes: any[] = [];
 
   for (let i = 0; i < data.length; i++) {
     const pixels = mg.createRectangle();
-    pixels.x = x + data[i].x;
-    pixels.y = y + data[i].y;
+    pixels.x = baseX + data[i].x;
+    pixels.y = baseY + data[i].y;
     pixels.width = data[i].w;
     pixels.height = data[i].h;
     pixels.name = data[i].name;
@@ -55,28 +74,19 @@ async function handlePixelIm(data: any[]) {
     // 填充图片
     await fillTheSelection(pixels, data[i].img);
 
-    // 如果是最后一个切片，创建组
-    if (i === data.length - 1) {
-      // 获取第一个切片的位置
-      const firstNode = nodes[nodes.length - data.length + 1];
-      const group = mg.group([firstNode]);
-      group.name = data[i].name.split('-')[0];
-
-      // 将其他切片添加到组中
-      for (let ii = 1; ii < data.length; ii++) {
-        firstNode.appendChild(nodes[nodes.length - data.length + 1 + ii]);
-      }
-
-      currentPage.selection = [firstNode];
-    }
-
-    nodes.push(pixels);
+    batchNodes.push(pixels);
   }
 
-  xx += data[0].w + 20;
+  if (batchNodes.length) {
+    const group = mg.group(batchNodes);
+    group.name = data[0].name.split('-')[0];
+    (mg as any).document.currentPage.selection = [group];
+  }
+
+  xx += totalWidth + 20;
   time++;
-  if (hh < data[0].h) {
-    hh = data[0].h;
+  if (hh < totalHeight) {
+    hh = totalHeight;
   }
 
   if (time % 4 === 0) {

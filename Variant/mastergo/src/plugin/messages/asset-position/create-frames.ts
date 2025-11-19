@@ -1,6 +1,7 @@
 import { MessageType } from '../../../../../src/messages';
 import { setSafeArea } from './safe-area';
 import { LayoutItem, applyLayout, LayoutConfig } from '../../utils/layout-utils';
+import { placeTemplateInstance } from '../../utils/component-utils';
 
 interface FrameData extends LayoutItem {
   name: string;
@@ -147,26 +148,7 @@ function createFrame(item: FrameData, x: number, y: number, isPng: boolean): any
  * 克隆组件到画板
  */
 function cloneComponent(frame: any, template: any, item: FrameData): void {
-  if (!template) return;
-
-  let instance: any;
-  
-  if (template.type === 'COMPONENT') {
-    instance = template.createInstance();
-  } else if (template.type === 'INSTANCE') {
-    instance = template.mainComponent.createInstance();
-  } else {
-    instance = template.clone();
-  }
-
-  // MasterGo 需要先添加到画板再调整
-  frame.appendChild(instance);
-  
-  // 调整实例大小以匹配画板
-  instance.width = item.w;
-  instance.height = item.h;
-  instance.x = 0;
-  instance.y = 0;
+  placeTemplateInstance(frame, template, item.w, item.h);
 }
 
 /**

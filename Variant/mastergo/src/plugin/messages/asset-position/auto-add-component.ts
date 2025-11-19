@@ -3,6 +3,7 @@
  * 从选中元素中找到组件/实例，自动填充到所有选中的画板中
  */
 import { MessageType } from '../../../../../src/messages';
+import { placeTemplateInstance } from '../../utils/component-utils';
 
 function handler() {
   const currentPage = (mg as any).document?.currentPage;
@@ -43,39 +44,15 @@ function handler() {
     
     // 只处理画板（FRAME）
     if (item.type === 'FRAME') {
-      // 计算缩放比例（根据画板是横版还是竖版）
-      let scale: number;
-      if (item.height > item.width) {
-        scale = item.height / key.height;
-      } else {
-        scale = item.width / key.width;
+      const instance = placeTemplateInstance(item, key, item.width, item.height);
+      if (!instance) {
+        continue;
       }
-
-      // 克隆并添加到画板
-      item.appendChild(key.clone());
-
-      // 获取刚添加的克隆组件
-      const clonedComponent = item.children[item.children.length - 1];
-
-      // 先进行缩放
-      clonedComponent.rescale(scale, { scaleCenter: 'CENTER' });
-
-      // 关闭等比例约束（MasterGo 使用 constrainProportions）
-      clonedComponent.constrainProportions = false;
-
-      // 调整到画板大小
-      clonedComponent.width = item.width;
-      clonedComponent.height = item.height;
-
-      // 设置位置
-      clonedComponent.x = 0;
-      clonedComponent.y = 0;
 
       filledCount++;
     }
   }
 
-  mg.notify(`成功填充 ${filledCount} 个画板`, { timeout: 2000 });
 }
 
 export default {
