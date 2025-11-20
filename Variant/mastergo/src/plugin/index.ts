@@ -13,13 +13,15 @@ import clientStorage from './messages/client-storage';
 
 // 资源位功能模块
 import createFrames from './messages/asset-position/create-frames';
-import autoLayout from './messages/asset-position/auto-layout';
-import autoAddComponent from './messages/asset-position/auto-add-component';
 import getFrame from './messages/asset-position/get-frame';
 import importImages from './messages/asset-position/import-images';
 import exportImages from './messages/asset-position/export-images';
 import toggleSafeArea from './messages/asset-position/toggle-safe-area';
 import getSafeAreaStatus from './messages/asset-position/get-safe-area-status';
+
+// 工具箱功能模块
+import autoLayout from './messages/toolbox/auto-layout';
+import autoAddComponent from './messages/toolbox/auto-add-component';
 
 // H5切图功能模块
 import oneClickCut from './messages/h5-cut/one-click-cut';
@@ -38,13 +40,15 @@ const messages = [
   
   // 资源位
   createFrames,
-  autoLayout,
-  autoAddComponent,
   getFrame,
   importImages,
   exportImages,
   toggleSafeArea,
   getSafeAreaStatus,
+  
+  // 工具箱
+  autoLayout,
+  autoAddComponent,
   
   // H5切图
   oneClickCut,

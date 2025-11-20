@@ -1,5 +1,5 @@
 import { MessageType } from '../../../../../src/messages';
-import { setSafeArea } from './safe-area';
+import { setSafeArea, bringSafeAreasToTop } from './safe-area';
 import { LayoutItem, applyLayout, LayoutConfig } from '../../utils/layout-utils';
 import { placeTemplateInstance } from '../../utils/component-utils';
 
@@ -148,24 +148,6 @@ function createFrame(item: FrameData, x: number, y: number, isPng: boolean): any
  */
 function cloneComponent(frame: any, template: any, item: FrameData): void {
   placeTemplateInstance(frame, template, item.w, item.h);
-}
-
-/**
- * 将安全区矩形移到容器最上层
- * @param frame 画板节点
- */
-function bringSafeAreasToTop(frame: any): void {
-  if (!frame || !frame.children) return;
-  
-  // 找到所有安全区矩形（名称以 safeArea- 开头）
-  const safeAreaRectangles = frame.children.filter((child: any) => 
-    child.name && child.name.startsWith('safeArea-')
-  );
-  
-  // 将所有安全区矩形移到最上层（移动到 children 数组末尾）
-  safeAreaRectangles.forEach((rectangle: any) => {
-    frame.appendChild(rectangle);
-  });
 }
 
 export default {

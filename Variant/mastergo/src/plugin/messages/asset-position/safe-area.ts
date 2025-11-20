@@ -119,3 +119,21 @@ export function setSafeArea(frame: any, width: number, height: number, safeArea?
   });
 }
 
+/**
+ * 将安全区矩形移到容器最上层
+ * @param frame 画板节点
+ */
+export function bringSafeAreasToTop(frame: any): void {
+  if (!frame || !frame.children) return;
+  
+  // 找到所有安全区矩形（名称以 safeArea- 开头）
+  const safeAreaRectangles = frame.children.filter((child: any) => 
+    child.name && child.name.startsWith('safeArea-')
+  );
+  
+  // 将所有安全区矩形移到最上层（移动到 children 数组末尾）
+  safeAreaRectangles.forEach((rectangle: any) => {
+    frame.appendChild(rectangle);
+  });
+}
+

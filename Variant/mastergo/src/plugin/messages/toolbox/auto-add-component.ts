@@ -4,6 +4,7 @@
  */
 import { MessageType } from '../../../../../src/messages';
 import { placeTemplateInstance } from '../../utils/component-utils';
+import { bringSafeAreasToTop } from '../asset-position/safe-area';
 
 function handler() {
   const currentPage = (mg as any).document?.currentPage;
@@ -57,6 +58,9 @@ function handler() {
         continue;
       }
 
+      // 确保安全区矩形位于容器最上层（在组件填充之后）
+      bringSafeAreasToTop(item);
+
       filledCount++;
     }
   }
@@ -67,3 +71,4 @@ export default {
   type: MessageType.AUTO_ADD_COMPONENT,
   handler,
 };
+

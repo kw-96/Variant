@@ -70,6 +70,11 @@ function handleAutoAddComponent() {
   sendMsgToPlugin(MessageType.AUTO_ADD_COMPONENT);
 }
 
+// 处理自动排列按钮点击
+function handleAutoLayout() {
+  sendMsgToPlugin(MessageType.AUTO_LAYOUT);
+}
+
 const quickActions: ToolCard[] = [
   {
     key: 'auto-add-component',
@@ -77,9 +82,9 @@ const quickActions: ToolCard[] = [
     handler: handleAutoAddComponent,
   },
   {
-    key: 'utility-placeholder',
-    label: '更多工具',
-    disabled: true,
+    key: 'auto-layout',
+    label: '自动排列',
+    handler: handleAutoLayout,
   },
 ];
 

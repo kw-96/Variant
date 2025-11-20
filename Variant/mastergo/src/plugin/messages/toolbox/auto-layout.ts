@@ -69,3 +69,4 @@ export default {
   type: MessageType.AUTO_LAYOUT as any,
   handler,
 };
+
