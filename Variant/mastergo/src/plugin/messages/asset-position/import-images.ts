@@ -6,22 +6,18 @@ import { MessageType } from '../../../../../src/messages';
 import { fillTheSelection } from '../../utils/image-utils';
 
 // 导入状态
-let importNum = 0;
 let xx = 0;
 let yy = 0;
 let time = 0;
-let ww = 0;
 let hh = 0;
 
 /**
  * 设置导入数量
  */
-function handleImportNum(num: number) {
-  importNum = num;
+function handleImportNum(_num: number) {
   xx = 0;
   yy = 0;
   time = 0;
-  ww = 0;
   hh = 0;
 }
 

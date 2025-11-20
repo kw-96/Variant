@@ -18,15 +18,23 @@ function handler() {
     return;
   }
 
-  // 查找组件或实例的 id
-  const componentItem = selection.find((item: any) => 
+  // 查找所有组件或实例
+  const componentItems = selection.filter((item: any) => 
     item.type === 'COMPONENT' || item.type === 'INSTANCE'
   );
 
-  if (!componentItem) {
+  if (componentItems.length === 0) {
     mg.notify('请先选择一个组件或实例作为模板', { timeout: 2000 });
     return;
   }
+
+  // 检测到多个组件时提示并阻止操作
+  if (componentItems.length > 1) {
+    mg.notify('检测到多个组件，请只选择一个组件作为模板', { timeout: 2000 });
+    return;
+  }
+
+  const componentItem = componentItems[0];
 
   const id = componentItem.id;
   const key = mg.getNodeById(id);

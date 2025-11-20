@@ -28,25 +28,24 @@ function handler(data: FrameData[]) {
   }
 
   const selection = currentPage.selection;
-  const template = selection.length > 0 ? selection[0] : null;
   
+  // 如果有选中节点，检查是否为组件，如果不是组件则不触发创建功能
+  if (selection.length > 0) {
+    const selectedNode = selection[0];
+    const isComponent = selectedNode.type === 'COMPONENT' || selectedNode.type === 'INSTANCE';
+    if (!isComponent) {
+      mg.notify('请选择组件或实例作为模板', { timeout: 2000 });
+      return;
+    }
+  }
+  
+  const template = selection.length > 0 ? selection[0] : null;
   const gap = 30;
 
-  // 计算起始位置
-  let startX: number;
-  let startY: number;
-  
-  if (selection.length > 0) {
-    // 如果有选中节点，从选中节点右侧开始排列（距离为2倍gap）
-    const selectedNode = selection[0];
-    startX = selectedNode.x + selectedNode.width + gap * 2;
-    startY = selectedNode.y;
-  } else {
-    // 如果没有选中节点，使用画布视口中心位置
-    const viewportCenter = (mg as any).viewport.center;
-    startX = viewportCenter.x;
-    startY = viewportCenter.y;
-  }
+  // 无论是否有选中节点，都使用视口中心位置
+  const viewportCenter = (mg as any).viewport.center;
+  const startX = viewportCenter.x;
+  const startY = viewportCenter.y;
 
   // 第一步：先创建所有画板（放在临时位置，稍后统一排列）
   const frames: Array<{ frame: any; data: FrameData }> = [];

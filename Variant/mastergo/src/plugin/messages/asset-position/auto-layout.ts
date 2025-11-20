@@ -63,7 +63,6 @@ function handler() {
     }
   );
 
-  mg.notify(`成功排列 ${selection.length} 个元素`, { timeout: 2000 });
 }
 
 export default {

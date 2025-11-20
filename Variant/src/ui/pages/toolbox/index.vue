@@ -9,7 +9,6 @@
           <van-button
             v-for="tool in quickActions"
             :key="tool.key"
-            block
             size="small"
             :class="[$style.toolButton, tool.disabled && $style.disabled]"
             :type="tool.disabled ? 'default' : 'primary'"
@@ -30,7 +29,6 @@
           <van-button
             v-for="tool in utilityTools"
             :key="tool.key"
-            block
             size="small"
             :class="[$style.toolButton, tool.disabled && $style.disabled]"
             :type="tool.disabled ? 'default' : 'primary'"
@@ -55,6 +53,7 @@
 <script lang="ts" setup>
 import { ref } from 'vue';
 import BatchExtend from './batch-extend.vue';
+import { MessageType, sendMsgToPlugin } from '../../../messages';
 
 interface ToolCard {
   key: string;
@@ -66,10 +65,20 @@ interface ToolCard {
 // 当前视图状态：'home' 表示工具箱主页，'batch-extend' 表示批量延展页面
 const currentView = ref<'home' | 'batch-extend'>('home');
 
+// 处理填充组件按钮点击
+function handleAutoAddComponent() {
+  sendMsgToPlugin(MessageType.AUTO_ADD_COMPONENT);
+}
+
 const quickActions: ToolCard[] = [
   {
-    key: 'quick-placeholder',
-    label: '快速投放',
+    key: 'auto-add-component',
+    label: '填充组件',
+    handler: handleAutoAddComponent,
+  },
+  {
+    key: 'utility-placeholder',
+    label: '更多工具',
     disabled: true,
   },
 ];
@@ -138,6 +147,7 @@ function handleToolClick(tool: ToolCard) {
   font-size: 15px;
   font-weight: 600;
   color: var(--text-primary, #1d2129);
+  padding-bottom: 10px;
 }
 
 .divider {
@@ -148,14 +158,17 @@ function handleToolClick(tool: ToolCard) {
 
 .list {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
 .toolButton {
+  flex: 1;
+  min-width: calc(50% - 4px);
   border-radius: 6px;
   font-size: 14px;
-  justify-content: flex-start;
+  justify-content: center;
   padding: 0 12px;
 }
 
@@ -172,8 +185,6 @@ function handleToolClick(tool: ToolCard) {
   justify-content: center;
   text-align: center;
   color: var(--text-secondary, #8c8c8c);
-  border: 1px dashed var(--border-color, rgba(0, 0, 0, 0.08));
-  border-radius: 8px;
   padding: 24px;
 }
 
