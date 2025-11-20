@@ -6,6 +6,7 @@
       :showSelectAll="!editMode"
       :showCheckbox="!editMode"
       :showAdd="editMode"
+      @update:items="onUpdateItems"
       @copy-item="oncopy"
       @delete-item="onDelete"
       @add-item="addStandard"
@@ -34,6 +35,13 @@ const props = defineProps({
 const config = computed<any>(() => (props as any).config || { options: [] });
 
 // onAllChecked 函数已由 DraggableList 组件内部处理
+
+function onUpdateItems(newItems: any[]) {
+  // 直接更新 props.config.options，确保响应式更新
+  if (props.config) {
+    props.config.options = newItems;
+  }
+}
 
 function oncopy(index: number) {
   const option = config.value.options[index];

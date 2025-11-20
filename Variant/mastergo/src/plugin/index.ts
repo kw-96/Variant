@@ -10,6 +10,7 @@ import { sendMsgToUI, MessageType } from '../../../src/messages';
 
 // 插件通信基础设施
 import clientStorage from './messages/client-storage';
+import showNotify from './messages/show-notify';
 
 // 资源位功能模块
 import createFrames from './messages/asset-position/create-frames';
@@ -22,6 +23,9 @@ import getSafeAreaStatus from './messages/asset-position/get-safe-area-status';
 // 工具箱功能模块
 import autoLayout from './messages/toolbox/auto-layout';
 import autoAddComponent from './messages/toolbox/auto-add-component';
+import roundToInteger from './messages/toolbox/round-to-integer';
+import batchButtonConvert from './messages/toolbox/batch-button-convert';
+import batchButtonGenerate from './messages/toolbox/batch-button-generate';
 
 // H5切图功能模块
 import oneClickCut from './messages/h5-cut/one-click-cut';
@@ -37,6 +41,7 @@ import { collapseWindow, expandWindow } from './messages/window-control';
 const messages = [
   // 基础设施
   clientStorage,
+  showNotify,
   
   // 资源位
   createFrames,
@@ -49,6 +54,9 @@ const messages = [
   // 工具箱
   autoLayout,
   autoAddComponent,
+  roundToInteger,
+  batchButtonConvert,
+  batchButtonGenerate,
   
   // H5切图
   oneClickCut,

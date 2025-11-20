@@ -95,6 +95,18 @@ const onFileDrop = async (files: File[]) => {
 <style lang="less" module>
 .excel-parser {
   padding: 12px;
+  padding-bottom: 24px;
+  position: relative;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 12px;
+    background: var(--bg-primary);
+  }
 }
 
 .container {

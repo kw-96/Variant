@@ -1,15 +1,25 @@
 <template>
   <div :class="$style.container">
-    <van-checkbox
-      v-if="showSelectAll"
-      icon-size="16px"
-      style="margin-top: 12px; width: fit-content"
-      :modelValue="allChecked"
-      shape="square"
-      @click="onAllChecked"
-    >
-      全选
-    </van-checkbox>
+    <div v-if="showSelectAll" :class="$style.headerRow">
+      <div 
+        :class="$style.selectAll"
+        @click="onAllChecked"
+      >
+        全选
+      </div>
+      <div 
+        :class="$style.copyButton"
+        @click="onCopy"
+      >
+        复制
+      </div>
+      <div 
+        :class="$style.addButton"
+        @click="onAdd"
+      >
+        添加
+      </div>
+    </div>
     
     <draggable
       :class="$style.list"
@@ -23,7 +33,8 @@
           <div v-if="showCheckbox" :class="$style['checkbox-col']">
             <van-checkbox
               icon-size="16px"
-              v-model="item.checked"
+              :model-value="item.checked"
+              @update:model-value="(val) => updateItemChecked(index, val)"
               shape="square"
             />
           </div>
@@ -56,12 +67,6 @@
 
           <div :class="[$style['action-col'], $style.col]">
             <van-icon
-              v-if="showAdd"
-              name="add-o"
-              title="复制"
-              @click="copyItem(index)"
-            />
-            <van-icon
               v-if="showDelete"
               name="close"
               title="删除"
@@ -81,8 +86,9 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed } from 'vue';
+import { computed } from 'vue';
 import draggable from 'vuedraggable';
+import { MessageType, sendMsgToPlugin } from '../../messages';
 
 interface ListItem {
   id: string;
@@ -113,7 +119,6 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   'update:items': [items: ListItem[]];
-  'copy-item': [index: number];
   'delete-item': [index: number];
 }>();
 
@@ -123,22 +128,89 @@ const items = computed({
 });
 
 const allChecked = computed(() => {
-  return items.value.every(item => item.checked);
+  return items.value.length > 0 && items.value.every(item => item.checked === true);
 });
 
 const onAllChecked = () => {
   const checked = !allChecked.value;
-  items.value.forEach(item => {
-    item.checked = checked;
-  });
-};
-
-const copyItem = (index: number) => {
-  emit('copy-item', index);
+  const newItems = items.value.map(item => ({
+    ...item,
+    checked: checked
+  }));
+  emit('update:items', newItems);
 };
 
 const deleteItem = (index: number) => {
   emit('delete-item', index);
+};
+
+/**
+ * 更新项目的选中状态
+ */
+const updateItemChecked = (index: number, checked: boolean) => {
+  const newItems = [...items.value];
+  newItems[index] = { ...newItems[index], checked };
+  emit('update:items', newItems);
+};
+
+/**
+ * 复制选中的数据
+ * 只允许复制一条数据，复制后插入到被复制数据的下一行
+ */
+const onCopy = () => {
+  const checkedItems = items.value.filter(item => item.checked);
+  
+  if (checkedItems.length === 0) {
+    sendMsgToPlugin(MessageType.SHOW_NOTIFY, { message: '请先选择要复制的数据', timeout: 2000 });
+    return;
+  }
+  
+  if (checkedItems.length > 1) {
+    sendMsgToPlugin(MessageType.SHOW_NOTIFY, { message: '只能复制一条数据', timeout: 2000 });
+    return;
+  }
+  
+  // 找到被复制的数据在原数组中的索引
+  const sourceItem = checkedItems[0];
+  const sourceIndex = items.value.findIndex(item => item.id === sourceItem.id);
+  
+  if (sourceIndex === -1) {
+    sendMsgToPlugin(MessageType.SHOW_NOTIFY, { message: '未找到要复制的数据', timeout: 2000 });
+    return;
+  }
+  
+  // 创建新数据（深拷贝）
+  const newItem: ListItem = {
+    id: `${Date.now()}-${Math.random()}`,
+    name: sourceItem.name,
+    width: sourceItem.width,
+    height: sourceItem.height,
+    checked: false,
+  };
+  
+  // 插入到被复制数据的下一行
+  const newItems = [...items.value];
+  newItems.splice(sourceIndex + 1, 0, newItem);
+  
+  // 更新数据
+  items.value = newItems;
+};
+
+/**
+ * 添加空数据
+ * 在数据最后添加一条空数据
+ */
+const onAdd = () => {
+  const newItem: ListItem = {
+    id: `${Date.now()}-${Math.random()}`,
+    name: '',
+    width: 0,
+    height: 0,
+    checked: false,
+  };
+  
+  const newItems = [...items.value, newItem];
+  emit('update:items', newItems);
 };
 </script>
 
@@ -154,9 +226,46 @@ const deleteItem = (index: number) => {
     padding-right: 6px;
   }
 
-  /* 调整“全选”文本颜色为次要文字色（提高优先级避免被默认色覆盖） */
-  :global(.van-checkbox__label) {
-    color: var(--text-secondary) !important;
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.selectAll {
+  width: fit-content;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+  
+  &:hover {
+    color: var(--text-primary);
+  }
+}
+
+.copyButton {
+  width: fit-content;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+  margin-left: auto;
+  
+  &:hover {
+    color: var(--text-primary);
+  }
+}
+
+.addButton {
+  width: fit-content;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+  margin-left: 12px;
+  
+  &:hover {
+    color: var(--text-primary);
   }
 }
 

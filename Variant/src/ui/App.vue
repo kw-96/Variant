@@ -77,17 +77,21 @@
         ...(popupProps.popupStyle || {}),
       }"
     >
-      <div :class="$style.titleBar">
-        <h3>{{ popupProps.title }}</h3>
-        <van-icon class="pointer" size="16" @click="hidePopup" name="revoke" />
+      <div :class="$style.popupContainer">
+        <div :class="$style.titleBar">
+          <h3>{{ popupProps.title }}</h3>
+          <van-icon class="pointer" size="16" @click="hidePopup" name="revoke" />
+        </div>
+        <div :class="$style.popupContent">
+          <component
+            v-if="isVisible"
+            :is="component"
+            @close="hidePopup"
+            v-bind="props"
+            v-on="listeners"
+          />
+        </div>
       </div>
-      <component
-        v-if="isVisible"
-        :is="component"
-        @close="hidePopup"
-        v-bind="props"
-        v-on="listeners"
-      />
     </van-popup>
   </div>
 </template>
@@ -444,10 +448,19 @@ addMessageListener(MessageType.WINDOW_STATE_CHANGED, (data: { collapsed: boolean
 
 .titleBar {
   display: flex;
+  align-items: center;
   padding: 12px;
   justify-content: space-between;
   border-bottom: 1px solid var(--divider-color);
   background-color: var(--input-bg);
   color: var(--text-primary);
+  
+  h3 {
+    margin: 0;
+    padding: 0;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+  }
 }
 </style>

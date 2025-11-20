@@ -22,6 +22,9 @@ export enum MessageType {
   IMPORT_IMAGES = 'importImages',
   CHANGE_TAB = 'changeTab',
   
+  // 工具箱相关
+  ROUND_TO_INTEGER = 'roundToInteger',
+  
   // 导出相关
   EXPORT_IMAGES = 'exportImages',
   FRAME_EXPORT = 'frameExport',
@@ -36,4 +39,11 @@ export enum MessageType {
   COLLAPSE_WINDOW = 'collapseWindow',
   EXPAND_WINDOW = 'expandWindow',
   WINDOW_STATE_CHANGED = 'windowStateChanged',
+  
+  // 通知相关
+  SHOW_NOTIFY = 'showNotify',
+
+  // 批量按钮
+  BATCH_BUTTON_CONVERT = 'batchButtonConvert',
+  BATCH_BUTTON_GENERATE = 'batchButtonGenerate',
 }

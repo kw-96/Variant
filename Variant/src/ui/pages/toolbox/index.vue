@@ -46,13 +46,15 @@
       </div>
     </div>
 
-    <BatchExtend v-else @back="handleBack" />
+    <BatchExtend v-else-if="currentView === 'batch-extend'" @back="handleBack" />
+    <BatchButton v-else-if="currentView === 'batch-button'" @back="handleBack" />
   </div>
 </template>
 
 <script lang="ts" setup>
 import { ref } from 'vue';
 import BatchExtend from './batch-extend.vue';
+import BatchButton from './batch-button.vue';
 import { MessageType, sendMsgToPlugin } from '../../../messages';
 
 interface ToolCard {
@@ -62,8 +64,8 @@ interface ToolCard {
   disabled?: boolean;
 }
 
-// 当前视图状态：'home' 表示工具箱主页，'batch-extend' 表示批量延展页面
-const currentView = ref<'home' | 'batch-extend'>('home');
+// 当前视图状态：'home' 表示工具箱主页，'batch-extend' 表示批量延展页面，'batch-button' 表示批量按钮页面
+const currentView = ref<'home' | 'batch-extend' | 'batch-button'>('home');
 
 // 处理填充组件按钮点击
 function handleAutoAddComponent() {
@@ -73,6 +75,11 @@ function handleAutoAddComponent() {
 // 处理自动排列按钮点击
 function handleAutoLayout() {
   sendMsgToPlugin(MessageType.AUTO_LAYOUT);
+}
+
+// 处理整数像素按钮点击
+function handleRoundToInteger() {
+  sendMsgToPlugin(MessageType.ROUND_TO_INTEGER);
 }
 
 const quickActions: ToolCard[] = [
@@ -86,6 +93,16 @@ const quickActions: ToolCard[] = [
     label: '自动排列',
     handler: handleAutoLayout,
   },
+  {
+    key: 'round-to-integer',
+    label: '整数像素',
+    handler: handleRoundToInteger,
+  },
+  {
+    key: 'utility-placeholder',
+    label: '更多工具',
+    disabled: true,
+  },
 ];
 
 const utilityTools: ToolCard[] = [
@@ -95,15 +112,20 @@ const utilityTools: ToolCard[] = [
     handler: handleBatchExtend,
   },
   {
-    key: 'utility-placeholder',
-    label: '更多工具',
-    disabled: true,
+    key: 'batch-button',
+    label: '批量按钮',
+    handler: handleBatchButton,
   },
 ];
 
 // 处理批量延展按钮点击
 function handleBatchExtend() {
   currentView.value = 'batch-extend';
+}
+
+// 处理批量按钮按钮点击
+function handleBatchButton() {
+  currentView.value = 'batch-button';
 }
 
 // 处理返回按钮点击

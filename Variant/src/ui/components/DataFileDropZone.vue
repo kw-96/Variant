@@ -65,10 +65,7 @@ const handleConfirm = () => {
 
 <style lang="less" module>
 .drop-area {
-  width: 100%;
-  height: 200px;
-  border: 2px dashed var(--border-color);
-  border-radius: 6px;
+  height: 180px;
   display: flex;
   justify-content: center;
   align-items: center;

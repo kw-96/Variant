@@ -82,9 +82,6 @@ const onAddStandard = () => {
     AddSizeConfig,
     {
       title: '添加规范',
-      popupStyle: {
-        background: 'var(--bg-secondary)',
-      },
       storageKey: props.storageKey,
     },
     {

@@ -21,11 +21,15 @@
         />
       </van-button>
       
-      <div :class="$style.operation" v-if="!editMode">
-        <van-button v-if="!editMode" round @click="onAddConfig" size="small">
-          <van-icon name="setting-o" /> 添加配置
-        </van-button>
-      </div>
+      <van-button 
+        v-if="!editMode" 
+        :class="$style.addButton"
+        round 
+        @click="onAddConfig" 
+        size="small"
+      >
+        <van-icon name="setting-o" /> 添加配置
+      </van-button>
     </div>
     
     <!-- 显示当前选中的配置内容 -->
@@ -107,7 +111,6 @@ const removeConfig = (config: ConfigItem) => {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  margin-bottom: 16px;
   
   &.edit {
     .vanButton {
@@ -116,11 +119,7 @@ const removeConfig = (config: ConfigItem) => {
   }
 }
 
-.vanButton {
-  margin-bottom: 8px;
-}
-
-.operation {
+.addButton {
   margin-left: auto;
 }
 </style>
