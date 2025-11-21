@@ -94,19 +94,13 @@ export function useStandardConfigs(
 
   // 自动保存
   watchDebounced(
-    () => activeConfig.value,
+    () => configs.value,
     newValue => {
       if (isExternalConfig.value) {
         return;
       }
-      if (newValue && configs.value.length > 0) {
-        const index = configs.value.findIndex(
-          config => config.id === newValue.id
-        );
-        if (index !== -1) {
-          configs.value[index] = { ...newValue };
-          saveData(configs.value);
-        }
+      if (newValue && newValue.length > 0) {
+        saveData(JSON.parse(JSON.stringify(newValue)));
       }
     },
     {

@@ -82,6 +82,11 @@ function handleRoundToInteger() {
   sendMsgToPlugin(MessageType.ROUND_TO_INTEGER);
 }
 
+// 处理简单约束按钮点击
+function handleSimpleConstraint() {
+  sendMsgToPlugin(MessageType.SIMPLE_CONSTRAINT);
+}
+
 const quickActions: ToolCard[] = [
   {
     key: 'auto-add-component',
@@ -99,9 +104,9 @@ const quickActions: ToolCard[] = [
     handler: handleRoundToInteger,
   },
   {
-    key: 'utility-placeholder',
-    label: '更多工具',
-    disabled: true,
+    key: 'simple-constraint',
+    label: '简单约束',
+    handler: handleSimpleConstraint,
   },
 ];
 
@@ -116,6 +121,11 @@ const utilityTools: ToolCard[] = [
     label: '批量按钮',
     handler: handleBatchButton,
   },
+  // {
+  //   key: 'utility-placeholder',
+  //   label: '更多工具',
+  //   disabled: true,
+  // },
 ];
 
 // 处理批量延展按钮点击

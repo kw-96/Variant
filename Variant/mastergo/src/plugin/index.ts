@@ -24,6 +24,7 @@ import getSafeAreaStatus from './messages/asset-position/get-safe-area-status';
 import autoLayout from './messages/toolbox/auto-layout';
 import autoAddComponent from './messages/toolbox/auto-add-component';
 import roundToInteger from './messages/toolbox/round-to-integer';
+import simpleConstraint from './messages/toolbox/simple-constraint';
 import batchButtonConvert from './messages/toolbox/batch-button-convert';
 import batchButtonGenerate from './messages/toolbox/batch-button-generate';
 
@@ -55,6 +56,7 @@ const messages = [
   autoLayout,
   autoAddComponent,
   roundToInteger,
+  simpleConstraint,
   batchButtonConvert,
   batchButtonGenerate,
   

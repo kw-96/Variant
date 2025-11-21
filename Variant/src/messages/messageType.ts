@@ -24,6 +24,7 @@ export enum MessageType {
   
   // 工具箱相关
   ROUND_TO_INTEGER = 'roundToInteger',
+  SIMPLE_CONSTRAINT = 'simpleConstraint',
   
   // 导出相关
   EXPORT_IMAGES = 'exportImages',
