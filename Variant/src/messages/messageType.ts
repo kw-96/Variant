@@ -47,4 +47,8 @@ export enum MessageType {
   // 批量按钮
   BATCH_BUTTON_CONVERT = 'batchButtonConvert',
   BATCH_BUTTON_GENERATE = 'batchButtonGenerate',
+
+  // 组件库相关
+  GET_COMPONENT_LIBRARY = 'getComponentLibrary',
+  IMPORT_COMPONENT_BY_UKEY = 'importComponentByUkey',
 }

@@ -27,6 +27,8 @@ import roundToInteger from './messages/toolbox/round-to-integer';
 import simpleConstraint from './messages/toolbox/simple-constraint';
 import batchButtonConvert from './messages/toolbox/batch-button-convert';
 import batchButtonGenerate from './messages/toolbox/batch-button-generate';
+import getComponentLibrary from './messages/toolbox/get-component-library';
+import importComponentByUkey from './messages/toolbox/import-component-by-ukey';
 
 // H5切图功能模块
 import oneClickCut from './messages/h5-cut/one-click-cut';
@@ -59,6 +61,8 @@ const messages = [
   simpleConstraint,
   batchButtonConvert,
   batchButtonGenerate,
+  getComponentLibrary,
+  importComponentByUkey,
   
   // H5切图
   oneClickCut,

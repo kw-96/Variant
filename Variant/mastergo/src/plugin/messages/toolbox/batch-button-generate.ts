@@ -13,19 +13,10 @@ function handler(data: GenerateData) {
   }
 
   const selection = currentPage.selection || [];
-  if (selection.length === 0) {
-    mg.notify('请先选择名为“数据流”的分组', { timeout: 2000 });
-    return;
-  }
-
   const targetGroup = selection[0];
-  if (targetGroup.name !== '数据流') {
-    mg.notify('请选择名为“数据流”的容器', { timeout: 2000 });
-    return;
-  }
 
-  if (targetGroup.type !== 'FRAME') {
-    mg.notify('请选择“数据流”容器（Frame）', { timeout: 2000 });
+  if (!targetGroup || targetGroup.name !== '数据流' || targetGroup.type !== 'FRAME') {
+    mg.notify('请选择“数据流”', { timeout: 2000 });
     return;
   }
 
@@ -44,7 +35,7 @@ function handler(data: GenerateData) {
   );
 
   if (!templateInstance) {
-    mg.notify('“数据流”分组中缺少实例，请重新转为数据流', {
+    mg.notify('“数据流”中缺少实例，请重新转为数据流', {
       timeout: 2000,
     });
     return;
@@ -96,19 +87,18 @@ function handler(data: GenerateData) {
   });
 
   currentPage.selection = [targetGroup];
-  mg.notify(`已生成 ${lines.length} 个按钮`, { timeout: 2000 });
 }
 
 function applyTextProperty(instance: any, value: string) {
   if (!instance) return;
   const textNodes = collectTextNodes(instance);
   if (textNodes.length === 0) {
-    mg.notify('实例中未找到文本图层', { timeout: 2000 });
+    mg.notify('未找到文本节点', { timeout: 2000 });
     return;
   }
 
   if (textNodes.length > 1) {
-    mg.notify('实例中存在多个文本图层，请保持只有一个', { timeout: 2000 });
+    mg.notify('存在多个文本节点，请保持只有一个', { timeout: 2000 });
     return;
   }
 

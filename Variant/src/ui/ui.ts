@@ -10,6 +10,9 @@ import {
   Popup, 
   Button,
   Checkbox,
+  CheckboxGroup,
+  Search,
+  Loading,
   Row,
   Col,
   Field,
@@ -57,6 +60,9 @@ app.use(Tab);
 app.use(Popup);
 app.use(Button);
 app.use(Checkbox);
+app.use(CheckboxGroup);
+app.use(Search);
+app.use(Loading);
 app.use(Row);
 app.use(Col);
 app.use(Field);

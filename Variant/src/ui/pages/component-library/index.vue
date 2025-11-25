@@ -4,53 +4,80 @@
     <div :class="$style.searchBar">
       <van-search
         v-model="searchValue"
-        placeholder="搜索组件名称或关键字"
-        background="var(--bg-primary)"
+        placeholder="搜索名称或关键词"
         shape="round"
-        @update:model-value="handleSearch"
+        clearable
+        @clear="handleClear"
       />
     </div>
 
-    <!-- 动态标签栏 -->
+    <!-- 动态标签栏 (定高隐藏 + 下拉框) -->
     <div :class="$style.tagSection">
-      <div :class="$style.tagList">
-        <button
-          v-for="tag in visibleTags"
-          :key="tag.id"
-          :class="[$style.tagItem, tag.id === activeTag && $style.active]"
-          @click="handleTagClick(tag.id)"
-        >
-          {{ tag.name }}
+      <!-- 常驻显示的标签栏 (限制高度，溢出隐藏) -->
+      <div :class="$style.tagBar">
+        <div :class="$style.tagList">
+          <div
+            v-for="tag in tagList"
+            :key="tag.id"
+            :class="[$style.tagItem, tag.id === activeTag && $style.active]"
+            @click="handleTagClick(tag.id)"
+          >
+            {{ tag.name }}
+          </div>
+        </div>
+        <!-- 展开/收起按钮 -->
+        <button :class="$style.expandBtn" @click="toggleDropdown">
+          {{ showDropdown ? '收起' : '展开' }}
         </button>
-        <div v-if="hiddenTagCount > 0" :class="$style.tagMore">
-          <span>+{{ hiddenTagCount }}</span>
+      </div>
+
+      <!-- 下拉框 (显示所有标签) -->
+      <div v-if="showDropdown" :class="$style.dropdown">
+        <div :class="$style.dropdownContent">
+          <div
+            v-for="tag in tagList"
+            :key="tag.id"
+            :class="[$style.tagItem, tag.id === activeTag && $style.active]"
+            @click="handleTagClick(tag.id)"
+          >
+            {{ tag.name }}
+          </div>
         </div>
       </div>
-      <button :class="$style.expandBtn" @click="handleExpandTags">
-        {{ showAllTags ? '收起' : '展开' }}
-      </button>
+      <!-- 遮罩层 (点击关闭下拉框) -->
+      <div v-if="showDropdown" :class="$style.mask" @click="showDropdown = false"></div>
     </div>
 
-    <!-- 组件列表 -->
+    <!-- 组件分组列表 -->
     <div :class="$style.listWrapper">
-      <div
-        v-for="component in filteredComponents"
-        :key="component.id"
-        :class="$style.card"
-      >
-        <div :class="$style.cardHeader">
-          <van-checkbox
-            :name="component.id"
-            v-model="selectedIds"
-            :label="component.name"
-          />
-          <span :class="$style.cardTag">{{ component.tagName }}</span>
+      <van-loading v-if="isLoading" type="spinner" vertical color="#1989fa">
+        {{ loadingText }}
+      </van-loading>
+      
+      <template v-else>
+        <van-checkbox-group v-model="selectedGroupKeys">
+          <div
+            v-for="group in filteredGroups"
+            :key="group.key"
+            :class="$style.card"
+          >
+            <div :class="$style.cardHeader">
+              <van-checkbox
+                :name="group.key"
+                shape="square"
+              >
+                {{ group.description || '无描述' }}
+              </van-checkbox>
+            </div>
+            <div :class="$style.cardFooter">
+               <span :class="$style.libraryName">{{ group.libraryName }}</span>
+            </div>
+          </div>
+        </van-checkbox-group>
+        <div v-if="filteredGroups.length === 0" :class="$style.empty">
+          {{ getEmptyText() }}
         </div>
-        <p :class="$style.cardDesc">{{ component.description }}</p>
-      </div>
-      <div v-if="filteredComponents.length === 0" :class="$style.empty">
-        暂无符合条件的组件
-      </div>
+      </template>
     </div>
 
     <!-- 导入按钮 -->
@@ -58,66 +85,226 @@
       <van-button
         type="primary"
         block
-        :disabled="selectedIds.length === 0"
+        :disabled="selectedGroupKeys.length === 0 || isImporting"
+        :loading="isImporting"
+        loading-text="导入中..."
         @click="handleImport"
       >
-        导入已选组件（{{ selectedIds.length }}）
+        立即导入
       </van-button>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted, onUnmounted } from 'vue';
+import { MessageType, addMessageListener, sendMsgToPlugin } from '../../../messages';
+
+interface ComponentInfo {
+  id: string;
+  name: string;
+  ukey: string;
+  description: string;
+  type: string;
+  cover: string;
+  width: number;
+  height: number;
+  libraryName: string;
+  category: string;
+}
+
+interface ComponentGroup {
+  key: string; // 唯一标识
+  description: string;
+  category: string;
+  components: ComponentInfo[];
+  cover: string;
+  libraryName: string;
+}
+
+interface Tag {
+  id: string;
+  name: string;
+}
 
 const searchValue = ref('');
-const showAllTags = ref(false);
+const showDropdown = ref(false);
 const activeTag = ref('all');
-const selectedIds = ref<string[]>([]);
+const selectedGroupKeys = ref<string[]>([]); // 存储选中的分组Key
+const isLoading = ref(true);
+const loadingText = ref('加载组件库中...');
+const isImporting = ref(false);
+const loadError = ref(false);
 
-const tagList = [
-  { id: 'all', name: '全部' },
-  { id: 'button', name: '按钮' },
-  { id: 'card', name: '卡片' },
-  { id: 'nav', name: '导航' },
-  { id: 'list', name: '列表' },
-  { id: 'popup', name: '弹窗' },
-];
+const componentList = ref<ComponentInfo[]>([]);
 
-const componentList = [
-  { id: '1', name: '主按钮', description: '品牌色主按钮', tag: 'button', tagName: '按钮' },
-  { id: '2', name: '次按钮', description: '线框样式二级按钮', tag: 'button', tagName: '按钮' },
-  { id: '3', name: '资讯卡片', description: '图文组合信息卡片', tag: 'card', tagName: '卡片' },
-  { id: '4', name: '底部导航', description: '三项底部导航栏', tag: 'nav', tagName: '导航' },
-  { id: '5', name: '弹窗框体', description: '标准提示弹窗', tag: 'popup', tagName: '弹窗' },
-];
+// 按 库名 分组组件
+const groupedComponentList = computed<ComponentGroup[]>(() => {
+  const groups: Record<string, ComponentGroup> = {};
+  
+  componentList.value.forEach(comp => {
+    const desc = comp.description ? comp.description.trim() : '';
+    // 生成唯一Key：库名::描述
+    const uniqueKey = `${comp.category}::${desc}`;
+    
+    if (!groups[uniqueKey]) {
+      groups[uniqueKey] = {
+        key: uniqueKey,
+        description: desc,
+        category: comp.category, // 这里的 category 已经是库名
+        components: [],
+        cover: comp.cover,
+        libraryName: comp.libraryName
+      };
+    }
+    
+    groups[uniqueKey].components.push(comp);
+    
+    // 如果当前组封面为空，且当前组件有封面，则更新
+    if (!groups[uniqueKey].cover && comp.cover) {
+      groups[uniqueKey].cover = comp.cover;
+    }
+  });
+  
+  return Object.keys(groups).map(key => groups[key]);
+});
 
-const visibleTags = computed(() => showAllTags.value ? tagList : tagList.slice(0, 4));
-const hiddenTagCount = computed(() => Math.max(tagList.length - visibleTags.value.length, 0));
+// 动态生成标签列表（基于分组分类/库名）
+const tagList = computed<Tag[]>(() => {
+  const tags = new Set<string>();
+  groupedComponentList.value.forEach(group => {
+    if (group.category) {
+      tags.add(group.category);
+    }
+  });
+  
+  const dynamicTags = Array.from(tags).sort().map(tag => ({
+    id: tag,
+    name: tag
+  }));
 
-const filteredComponents = computed(() => {
-  return componentList.filter(item => {
-    const tagMatch = activeTag.value === 'all' || item.tag === activeTag.value;
-    const searchMatch = item.name.includes(searchValue.value);
+  return [{ id: 'all', name: '全部' }, ...dynamicTags];
+});
+
+// 筛选分组
+const filteredGroups = computed(() => {
+  return groupedComponentList.value.filter(group => {
+    const tagMatch = activeTag.value === 'all' || group.category === activeTag.value;
+    // 搜索匹配描述
+    const searchMatch = group.description.toLowerCase().includes(searchValue.value.toLowerCase());
     return tagMatch && searchMatch;
   });
 });
 
-function handleSearch() {
-  // TODO: 搜索结果可接入真实数据
+function getEmptyText() {
+  if (loadError.value) return '加载超时或失败，请向开发者反馈问题';
+  return componentList.value.length === 0 ? '未找到团队库，请检查团队库订阅（快捷键：Ctrl+Alt+4。团队库中激活所需库后，再打开组件库）' : '暂无符合条件的团队库';
+}
+
+function handleClear() {
+  searchValue.value = '';
 }
 
 function handleTagClick(tagId: string) {
   activeTag.value = tagId;
+  showDropdown.value = false; // 选择后关闭下拉框
 }
 
-function handleExpandTags() {
-  showAllTags.value = !showAllTags.value;
+function toggleDropdown() {
+  showDropdown.value = !showDropdown.value;
 }
 
 function handleImport() {
-  // TODO: 后续接入真实导入逻辑
+  if (selectedGroupKeys.value.length === 0) return;
+  
+  isImporting.value = true;
+  
+  // 按描述分组收集组件 ukey
+  const descriptionGroups = new Map<string, string[]>();
+  
+  groupedComponentList.value.forEach(group => {
+    if (selectedGroupKeys.value.indexOf(group.key) !== -1) {
+      const description = group.description || '未命名';
+      if (!descriptionGroups.has(description)) {
+        descriptionGroups.set(description, []);
+      }
+      group.components.forEach(comp => {
+        descriptionGroups.get(description)!.push(comp.ukey);
+      });
+    }
+  });
+
+  // 转换为数组格式：{ description, ukeys }
+  const groups = Array.from(descriptionGroups.entries()).map(([description, ukeys]) => ({
+    description,
+    ukeys
+  }));
+
+  if (groups.length > 0) {
+    sendMsgToPlugin(MessageType.IMPORT_COMPONENT_BY_UKEY, { groups });
+    
+    // 模拟导入完成状态清除
+    setTimeout(() => {
+      isImporting.value = false;
+      selectedGroupKeys.value = []; // 清空选择
+    }, 1000);
+  } else {
+    isImporting.value = false;
+  }
 }
+
+// 消息监听清理函数
+let removeListener: (() => void) | null = null;
+let loadTimeout: any = null;
+
+onMounted(() => {
+  isLoading.value = true;
+  loadingText.value = '加载组件库中...';
+  loadError.value = false;
+  
+  // 注册消息监听
+  removeListener = addMessageListener(MessageType.GET_COMPONENT_LIBRARY, (data: any) => {
+    console.log('UI received component list:', data);
+    
+    // 修复：解析插件返回的数据结构 { components: [...] }
+    if (data && Array.isArray(data.components)) {
+      componentList.value = data.components;
+    } else if (Array.isArray(data)) {
+      // 兼容直接返回数组的情况
+      componentList.value = data;
+    } else {
+      console.warn('Received invalid data format:', data);
+      componentList.value = [];
+    }
+
+    isLoading.value = false;
+    if (loadTimeout) {
+      clearTimeout(loadTimeout);
+      loadTimeout = null;
+    }
+  });
+
+  // 请求组件数据
+  sendMsgToPlugin(MessageType.GET_COMPONENT_LIBRARY);
+  
+  // 设置超时保护 (3秒)
+  loadTimeout = setTimeout(() => {
+    if (isLoading.value) {
+      isLoading.value = false;
+      loadError.value = true;
+      console.warn('加载组件库超时 (3s)');
+    }
+  }, 3000);
+});
+
+onUnmounted(() => {
+  if (removeListener) {
+    removeListener();
+  }
+  if (loadTimeout) {
+    clearTimeout(loadTimeout);
+  }
+});
 </script>
 
 <style lang="less" module>
@@ -128,56 +315,133 @@ function handleImport() {
   gap: 12px;
   padding: 12px;
   box-sizing: border-box;
+  background-color: var(--bg-secondary);
 }
 
 .searchBar {
-  padding-bottom: 4px;
+  /* 覆盖 Vant 搜索框内部样式 */
+  :global {
+    .van-search {
+      background-color: transparent;
+      padding: 0;
+    }
+    .van-search__content {
+      background-color: transparent;
+      padding-left: 0;
+    }
+    .van-field__left-icon {
+      margin-right: var(--van-padding-base);
+      margin-left: var(--van-padding-base);
+    }
+  }
 }
 
 .tagSection {
+  position: relative; /* 为下拉框定位 */
+  z-index: 10;
+}
+
+.tagBar {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
+  position: relative;
 }
 
 .tagList {
   display: flex;
-  flex-wrap: nowrap;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 16px;
   flex: 1;
+  /* 限制高度为一行的高度，溢出隐藏，不横向滚动 */
+  height: 26px; 
   overflow: hidden;
 }
 
 .tagItem {
-  border: 1px solid var(--divider-color);
-  border-radius: 16px;
-  padding: 4px 12px;
-  background: var(--bg-primary);
+  /* 纯文本样式 */
+  border: none;
+  background: transparent;
+  padding: 4px 0;
   color: var(--text-secondary);
   cursor: pointer;
+  font-size: 13px;
+  line-height: 1.4;
+  transition: all 0.2s;
+  position: relative;
   white-space: nowrap;
 
   &.active {
-    border-color: var(--button-primary-bg);
-    color: var(--button-primary-bg);
-    background: rgba(50, 150, 250, 0.1);
+    color: var(--theme-color);
+    font-weight: 500;
+    
+    &::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background-color: var(--theme-color);
+        border-radius: 1px;
+    }
   }
-}
-
-.tagMore {
-  min-width: 40px;
-  text-align: center;
-  color: var(--text-secondary);
+  
+  &:hover:not(.active) {
+      color: var(--text-primary);
+  }
 }
 
 .expandBtn {
   border: none;
-  background: var(--input-bg);
-  padding: 4px 10px;
-  border-radius: 12px;
+  background: transparent;
+  padding: 4px 8px;
   cursor: pointer;
-  color: var(--text-secondary);
+  color: var(--theme-color);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  height: 26px; /* 与 tagItem 对齐 */
+  white-space: nowrap;
+  
+  &:hover {
+    opacity: 0.8;
+  }
+}
+
+/* 删除 arrow 样式 */
+
+/* 下拉框样式 */
+.dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: var(--bg-primary); /* 使用主背景色 */
+  border: 1px solid var(--divider-color);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 12px;
+  margin-top: 4px;
+  z-index: 100;
+}
+
+.dropdownContent {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+}
+
+/* 遮罩层 */
+.mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 90; /* 在下拉框之下 */
+  background: transparent; /* 透明遮罩，仅用于点击关闭 */
 }
 
 .listWrapper {
@@ -186,6 +450,7 @@ function handleImport() {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding-right: 4px; /* 滚动条空间 */
 }
 
 .card {
@@ -195,30 +460,45 @@ function handleImport() {
   background: var(--bg-primary);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
+  transition: all 0.2s;
+  
+  &:hover {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
 }
 
 .cardHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  /* Ensure checkbox text handles long descriptions gracefully */
+  :global(.van-checkbox__label) {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-right: 8px;
+      color: var(--text-primary);
+      font-size: 13px;
+  }
 }
 
-.cardTag {
-  font-size: 12px;
-  color: var(--text-secondary);
+.cardFooter {
+    display: flex;
+    justify-content: flex-end;
 }
 
-.cardDesc {
-  margin: 0;
-  font-size: 13px;
-  color: var(--text-secondary);
+.libraryName {
+    font-size: 10px;
+    color: var(--text-disabled);
 }
 
 .empty {
   text-align: center;
   color: var(--text-secondary);
   padding: 24px 0;
+  font-size: 14px;
 }
 
 .actionBar {
@@ -226,4 +506,3 @@ function handleImport() {
   border-top: 1px solid var(--divider-color);
 }
 </style>
-
