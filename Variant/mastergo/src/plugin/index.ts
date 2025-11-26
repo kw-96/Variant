@@ -27,8 +27,10 @@ import roundToInteger from './messages/toolbox/round-to-integer';
 import simpleConstraint from './messages/toolbox/simple-constraint';
 import batchButtonConvert from './messages/toolbox/batch-button-convert';
 import batchButtonGenerate from './messages/toolbox/batch-button-generate';
-import getComponentLibrary from './messages/toolbox/get-component-library';
-import importComponentByUkey from './messages/toolbox/import-component-by-ukey';
+
+// 组件库功能模块
+import getComponentLibrary from './messages/component-library/get-component-library';
+import importComponentByUkey from './messages/component-library/import-component-by-ukey';
 
 // H5切图功能模块
 import oneClickCut from './messages/h5-cut/one-click-cut';

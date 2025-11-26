@@ -77,3 +77,4 @@ export default {
   type: MessageType.GET_COMPONENT_LIBRARY,
   handler,
 };
+
