@@ -2,8 +2,8 @@
  * 自动排列选中元素
  * 根据元素的宽高自动进行排列布局
  */
-import { MessageType } from '../../../../../src/messages';
-import { sortItems, LayoutItem, applyLayout, LayoutConfig } from '../../utils/layout-utils';
+import { MessageType } from '../../../../../../src/messages';
+import { sortItems, LayoutItem, applyLayout, LayoutConfig } from '../../../utils/layout-utils';
 
 interface NodeInfo extends LayoutItem {
   x: number;

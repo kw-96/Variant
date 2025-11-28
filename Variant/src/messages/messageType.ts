@@ -48,6 +48,13 @@ export enum MessageType {
   BATCH_BUTTON_CONVERT = 'batchButtonConvert',
   BATCH_BUTTON_GENERATE = 'batchButtonGenerate',
 
+  // 批量延展
+  BATCH_EXTEND_UPLOAD = 'batchExtendUpload',
+  BATCH_EXTEND_PROCESS = 'batchExtendProcess',
+  BATCH_EXTEND_REQUEST_IMAGE = 'batchExtendRequestImage',
+  BATCH_EXTEND_IMAGE_RESPONSE = 'batchExtendImageResponse',
+  BATCH_EXTEND_BATCH_RESULT = 'batchExtendBatchResult',
+
   // 组件库相关
   GET_COMPONENT_LIBRARY = 'getComponentLibrary',
   IMPORT_COMPONENT_BY_UKEY = 'importComponentByUkey',

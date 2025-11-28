@@ -20,13 +20,17 @@ import exportImages from './messages/asset-position/export-images';
 import toggleSafeArea from './messages/asset-position/toggle-safe-area';
 import getSafeAreaStatus from './messages/asset-position/get-safe-area-status';
 
-// 工具箱功能模块
-import autoLayout from './messages/toolbox/auto-layout';
-import autoAddComponent from './messages/toolbox/auto-add-component';
-import roundToInteger from './messages/toolbox/round-to-integer';
-import simpleConstraint from './messages/toolbox/simple-constraint';
-import batchButtonConvert from './messages/toolbox/batch-button-convert';
-import batchButtonGenerate from './messages/toolbox/batch-button-generate';
+// 工具箱功能模块 - 快捷操作
+import autoLayout from './messages/toolbox/quick-actions/auto-layout';
+import autoAddComponent from './messages/toolbox/quick-actions/auto-add-component';
+import roundToInteger from './messages/toolbox/quick-actions/round-to-integer';
+import simpleConstraint from './messages/toolbox/quick-actions/simple-constraint';
+
+// 工具箱功能模块 - 实用工具
+import batchButtonConvert from './messages/toolbox/utility-tools/batch-button-convert';
+import batchButtonGenerate from './messages/toolbox/utility-tools/batch-button-generate';
+import batchExtendUpload from './messages/toolbox/utility-tools/batch-extend-upload';
+import batchExtendProcess from './messages/toolbox/utility-tools/batch-extend-process';
 
 // 组件库功能模块
 import getComponentLibrary from './messages/component-library/get-component-library';
@@ -63,6 +67,8 @@ const messages = [
   simpleConstraint,
   batchButtonConvert,
   batchButtonGenerate,
+  batchExtendUpload,
+  ...(Array.isArray(batchExtendProcess) ? batchExtendProcess : [batchExtendProcess]),
   getComponentLibrary,
   importComponentByUkey,
   

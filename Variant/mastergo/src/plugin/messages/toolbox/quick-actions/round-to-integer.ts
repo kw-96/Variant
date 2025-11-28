@@ -2,7 +2,7 @@
  * 整数像素功能
  * 将选中节点的宽高尺寸和位置对齐到整数像素
  */
-import { MessageType } from '../../../../../src/messages';
+import { MessageType } from '../../../../../../src/messages';
 
 function handler() {
   const currentPage = (mg as any).document?.currentPage;

@@ -1,5 +1,5 @@
 // 转为数据流
-import { MessageType } from '../../../../../src/messages';
+import { MessageType } from '../../../../../../src/messages';
 
 function handler() {
   const currentPage = (mg as any).document?.currentPage;
@@ -71,7 +71,7 @@ function handler() {
   }
 
   currentPage.selection = [container];
-  mg.notify('已创建“数据流”容器', { timeout: 2000 });
+  mg.notify('已创建"数据流"容器', { timeout: 2000 });
 }
 
 // 收集文本节点

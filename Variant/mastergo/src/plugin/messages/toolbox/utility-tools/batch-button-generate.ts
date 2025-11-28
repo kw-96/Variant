@@ -1,5 +1,5 @@
 // 批量生成按钮
-import { MessageType } from '../../../../../src/messages';
+import { MessageType } from '../../../../../../src/messages';
 
 interface GenerateData {
   lines?: string[];
@@ -16,7 +16,7 @@ function handler(data: GenerateData) {
   const targetGroup = selection[0];
 
   if (!targetGroup || targetGroup.name !== '数据流' || targetGroup.type !== 'FRAME') {
-    mg.notify('请选择“数据流”', { timeout: 2000 });
+    mg.notify('请选择"数据流"', { timeout: 2000 });
     return;
   }
 
@@ -35,7 +35,7 @@ function handler(data: GenerateData) {
   );
 
   if (!templateInstance) {
-    mg.notify('“数据流”中缺少实例，请重新转为数据流', {
+    mg.notify('"数据流"中缺少实例，请重新转为数据流', {
       timeout: 2000,
     });
     return;

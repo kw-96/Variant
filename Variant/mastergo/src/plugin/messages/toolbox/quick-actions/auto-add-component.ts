@@ -2,9 +2,9 @@
  * 自动填充组件到画板
  * 从选中元素中找到组件/实例，自动填充到所有选中的画板中
  */
-import { MessageType } from '../../../../../src/messages';
-import { placeTemplateInstance } from '../../utils/component-utils';
-import { bringSafeAreasToTop } from '../asset-position/safe-area';
+import { MessageType } from '../../../../../../src/messages';
+import { placeTemplateInstance } from '../../../utils/component-utils';
+import { bringSafeAreasToTop } from '../../asset-position/safe-area';
 
 function handler() {
   const currentPage = (mg as any).document?.currentPage;

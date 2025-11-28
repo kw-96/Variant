@@ -410,8 +410,6 @@ onUnmounted(() => {
   }
 }
 
-/* 删除 arrow 样式 */
-
 /* 下拉框样式 */
 .dropdown {
   position: absolute;

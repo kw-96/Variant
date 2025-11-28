@@ -2,7 +2,7 @@
  * 简单约束
  * 将容器内的子节点约束设置为 SCALE，并根据父容器尺寸调整图片填充模式
  */
-import { MessageType } from '../../../../../src/messages';
+import { MessageType } from '../../../../../../src/messages';
 
 function handler() {
   const currentPage = (mg as any).document?.currentPage;
@@ -84,5 +84,4 @@ export default {
   type: MessageType.SIMPLE_CONSTRAINT,
   handler,
 };
-
 
