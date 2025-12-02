@@ -106,6 +106,10 @@ function applyTextProperty(instance: any, value: string) {
   if (textNode) {
     try {
       textNode.characters = value;
+      // 使用文本内容命名实例
+      if (value && value.trim()) {
+        instance.name = value.trim();
+      }
     } catch (error) {
       // ignored
     }
