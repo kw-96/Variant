@@ -48,6 +48,7 @@
 
     <BatchExtend v-else-if="currentView === 'batch-extend'" @back="handleBack" />
     <BatchButton v-else-if="currentView === 'batch-button'" @back="handleBack" />
+    <DataFlow v-else-if="currentView === 'data-flow'" @back="handleBack" />
   </div>
 </template>
 
@@ -55,6 +56,7 @@
 import { ref } from 'vue';
 import BatchExtend from './batch-extend.vue';
 import BatchButton from './batch-button.vue';
+import DataFlow from './data-flow.vue';
 import { MessageType, sendMsgToPlugin } from '../../../messages';
 
 interface ToolCard {
@@ -64,8 +66,8 @@ interface ToolCard {
   disabled?: boolean;
 }
 
-// 当前视图状态：'home' 表示工具箱主页，'batch-extend' 表示批量延展页面，'batch-button' 表示批量按钮页面
-const currentView = ref<'home' | 'batch-extend' | 'batch-button'>('home');
+// 当前视图状态：'home' 表示工具箱主页，'batch-extend' 表示批量延展页面，'batch-button' 表示批量按钮页面，'data-flow' 表示数据流页面
+const currentView = ref<'home' | 'batch-extend' | 'batch-button' | 'data-flow'>('home');
 
 // 处理填充组件按钮点击
 function handleAutoAddComponent() {
@@ -121,6 +123,11 @@ const utilityTools: ToolCard[] = [
     label: '批量按钮',
     handler: handleBatchButton,
   },
+  {
+    key: 'data-flow',
+    label: '数据流',
+    handler: handleDataFlow,
+  },
   // {
   //   key: 'utility-placeholder',
   //   label: '更多工具',
@@ -136,6 +143,11 @@ function handleBatchExtend() {
 // 处理批量按钮按钮点击
 function handleBatchButton() {
   currentView.value = 'batch-button';
+}
+
+// 处理数据流按钮点击
+function handleDataFlow() {
+  currentView.value = 'data-flow';
 }
 
 // 处理返回按钮点击
