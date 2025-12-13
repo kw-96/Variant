@@ -31,6 +31,7 @@ import batchButtonConvert from './messages/toolbox/utility-tools/batch-button-co
 import batchButtonGenerate from './messages/toolbox/utility-tools/batch-button-generate';
 import batchExtendUpload from './messages/toolbox/utility-tools/batch-extend-upload';
 import batchExtendProcess from './messages/toolbox/utility-tools/batch-extend-process';
+import dataFlowProcess from './messages/toolbox/utility-tools/data-flow-process';
 
 // 组件库功能模块
 import getComponentLibrary from './messages/component-library/get-component-library';
@@ -69,6 +70,7 @@ const messages = [
   batchButtonGenerate,
   batchExtendUpload,
   ...(Array.isArray(batchExtendProcess) ? batchExtendProcess : [batchExtendProcess]),
+  dataFlowProcess,
   getComponentLibrary,
   importComponentByUkey,
   
