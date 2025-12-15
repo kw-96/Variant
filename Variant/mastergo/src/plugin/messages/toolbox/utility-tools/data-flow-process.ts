@@ -58,62 +58,98 @@ function collectTextNodes(node: any): any[] {
 }
 
 /**
- * 切换组件集的属性
- * @param instance 组件集实例
- * @param propertyName 属性名称（表头名称，需要匹配组件或组件集的名称）
- * @param propertyValue 属性值
+ * 判断是否为组件集实例
+ * @param instance 实例节点
  */
-function switchComponentSetProperty(instance: any, propertyName: string, propertyValue: string) {
-  if (!instance || instance.type !== 'INSTANCE') {
+function isComponentSetInstance(instance: any): boolean {
+  if (!instance || instance.type !== 'INSTANCE') return false;
+  const mainComponent = instance.mainComponent || instance.component;
+  if (!mainComponent) return false;
+  if (mainComponent.type === 'COMPONENT_SET') return true;
+  if (mainComponent.parent && mainComponent.parent.type === 'COMPONENT_SET') return true;
+  return false;
+}
+
+/**
+ * 组件集实例：直接切换到指定的变体状态（取第一个 VARIANT 属性）
+ * - 表格单元格值：期望为变体名称（如 image09_1）
+ * - 兼容组件集中选项格式：属性1=image09_1（仅比较等号后半段）
+ * @param instance 组件集实例
+ * @param desiredVariantName 期望的变体名称
+ */
+function switchComponentSetVariant(instance: any, desiredVariantName: string): boolean {
+  if (!instance || instance.type !== 'INSTANCE') return false;
+
+  // 使用官方提供的 variantProperties 读取变体信息
+  const variantProperties = (instance as any).variantProperties;
+  if (!Array.isArray(variantProperties) || variantProperties.length === 0) {
+    console.warn('实例不存在 variantProperties，无法切换组件集变体');
     return false;
   }
 
-  try {
-    // 获取组件集的主组件
-    const mainComponent = instance.mainComponent || instance.component;
-    if (!mainComponent || mainComponent.type !== 'COMPONENT_SET') {
-      return false;
-    }
+  // 取第一个变体属性，直接使用 SDK 暴露的 property 字段作为真实属性名
+  const firstVariant = variantProperties[0] || {};
+  const propKey = (firstVariant as any).property;
 
-    // 获取组件集的属性定义
-    const componentPropertyDefinitions = mainComponent.componentPropertyDefinitions || {};
-    
-    // 查找匹配的属性（支持通过属性名称或key匹配）
-    let matchedKey: string | null = null;
-    for (const [key, definition] of Object.entries(componentPropertyDefinitions)) {
-      const def = definition as any;
-      // 检查属性名称是否匹配（支持名称或key匹配）
-      if (def.name === propertyName || key === propertyName) {
-        matchedKey = key;
-        break;
-      }
-    }
+  if (!propKey) {
+    console.warn('变体属性缺少 property 字段，无法切换组件集变体');
+    return false;
+  }
 
-    if (!matchedKey) {
-      return false;
-    }
+  // 不同版本 SDK 中字段命名可能不同，这里做一次兼容性兜底
+  let variantOptions: string[] = [];
+  if (Array.isArray(firstVariant.options)) {
+    variantOptions = firstVariant.options;
+  } else if (Array.isArray(firstVariant.values)) {
+    variantOptions = firstVariant.values;
+  } else if (Array.isArray(firstVariant.variants)) {
+    variantOptions = firstVariant.variants;
+  }
 
-    // 设置实例的属性值
-    if (instance.setProperties && typeof instance.setProperties === 'function') {
-      try {
-        instance.setProperties({ [matchedKey]: propertyValue });
-        return true;
-      } catch (error) {
-        console.warn(`使用 setProperties 设置属性失败，尝试直接设置:`, error);
-      }
+  const normalize = (val: string) => {
+    if (!val) return '';
+    const parts = String(val).split('=');
+    return String(parts[parts.length - 1]).trim().toLowerCase();
+  };
+
+  let finalValue: any = desiredVariantName;
+  if (variantOptions.length > 0) {
+    const desiredLower = String(desiredVariantName).toLowerCase();
+    const desiredNorm = normalize(desiredVariantName);
+
+    const matched = variantOptions.find(opt => {
+      if (!opt) return false;
+      if (opt.toLowerCase() === desiredLower) return true;
+      return normalize(opt) === desiredNorm;
+    });
+
+    if (matched) {
+      finalValue = matched;
+    } else {
+      console.warn('目标变体不在可选列表，使用默认项');
     }
-    
-    // 降级方案：直接设置 componentProperties
-    if (instance.componentProperties) {
-      instance.componentProperties[matchedKey] = propertyValue;
+  }
+
+  if (typeof (instance as any).setVariantPropertyValues === 'function') {
+    try {
+      (instance as any).setVariantPropertyValues({ [propKey]: finalValue });
       return true;
+    } catch (error) {
+      console.warn('setVariantPropertyValues 调用失败，尝试 setProperties', error);
     }
-
-    return false;
-  } catch (error) {
-    console.error(`切换组件集属性失败 (${propertyName}):`, error);
-    return false;
   }
+
+  if (typeof instance.setProperties === 'function') {
+    try {
+      instance.setProperties({ [propKey]: finalValue });
+      return true;
+    } catch (error) {
+      console.warn('setProperties 调用失败，无法切换组件集变体', error);
+    }
+  }
+
+  console.warn('无法切换组件集变体（API 均失败）');
+  return false;
 }
 
 /**
@@ -260,30 +296,26 @@ function handler(data: DataFlowData) {
 
       // 判断节点类型并处理
       if (targetNode.type === 'INSTANCE') {
-        // 检查是否是组件集实例
-        const mainComponent = targetNode.mainComponent || targetNode.component;
-        if (mainComponent && mainComponent.type === 'COMPONENT_SET') {
-          // 组件集：切换属性
-          const success = switchComponentSetProperty(
-            targetNode,
-            header,
-            String(value)
-          );
-          if (!success) {
-            console.warn(`无法切换组件集属性: ${header}`);
+        const strValue = String(value);
+
+        // 组件集实例：仅切换变体状态，不做文本替换
+        if (isComponentSetInstance(targetNode)) {
+          const ok = switchComponentSetVariant(targetNode, strValue);
+          if (!ok) {
+            console.warn(`无法切换组件集变体: ${header}`, { nodeName: targetNode.name });
           }
-        } else {
-          // 普通组件实例：尝试替换文本
-          const success = replaceComponentText(targetNode, String(value));
-          if (!success) {
-            console.warn(`无法替换组件文本: ${header}`);
-          }
+          continue;
+        }
+
+        // 非组件集实例：直接替换文本
+        const ok = replaceComponentText(targetNode, strValue);
+        if (!ok) {
+          console.warn(`无法替换实例文本: ${header}`, { nodeName: targetNode.name });
         }
       } else if (targetNode.type === 'COMPONENT') {
-        // 组件：尝试替换文本
         const success = replaceComponentText(targetNode, String(value));
         if (!success) {
-          console.warn(`无法替换组件文本: ${header}`);
+          console.warn(`无法替换组件文本: ${header}`, { nodeName: targetNode.name });
         }
       } else if (targetNode.type === 'TEXT') {
         // 文本节点：直接替换

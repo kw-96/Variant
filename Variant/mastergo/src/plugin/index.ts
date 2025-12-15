@@ -27,10 +27,11 @@ import roundToInteger from './messages/toolbox/quick-actions/round-to-integer';
 import simpleConstraint from './messages/toolbox/quick-actions/simple-constraint';
 
 // 工具箱功能模块 - 实用工具
-import batchButtonConvert from './messages/toolbox/utility-tools/batch-button-convert';
+import batchButtonConvert from './messages/toolbox/utility-tools/convert-to-data-flow/batch-button-convert';
 import batchButtonGenerate from './messages/toolbox/utility-tools/batch-button-generate';
 import batchExtendUpload from './messages/toolbox/utility-tools/batch-extend-upload';
 import batchExtendProcess from './messages/toolbox/utility-tools/batch-extend-process';
+import dataFlowConvert from './messages/toolbox/utility-tools/convert-to-data-flow/data-flow-convert';
 import dataFlowProcess from './messages/toolbox/utility-tools/data-flow-process';
 
 // 组件库功能模块
@@ -70,6 +71,7 @@ const messages = [
   batchButtonGenerate,
   batchExtendUpload,
   ...(Array.isArray(batchExtendProcess) ? batchExtendProcess : [batchExtendProcess]),
+  dataFlowConvert,
   dataFlowProcess,
   getComponentLibrary,
   importComponentByUkey,

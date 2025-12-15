@@ -60,5 +60,7 @@ export enum MessageType {
   IMPORT_COMPONENT_BY_UKEY = 'importComponentByUkey',
 
   // 数据流相关
+  DATA_FLOW_CONVERT = 'dataFlowConvert',
   DATA_FLOW_PROCESS = 'dataFlowProcess',
 }
+

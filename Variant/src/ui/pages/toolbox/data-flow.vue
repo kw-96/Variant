@@ -96,6 +96,9 @@ import { ref } from 'vue';
 import { MessageType, sendMsgToPlugin } from '../../../messages';
 import { handleExcelUpload } from '../../utils/fileUploadHandler';
 
+// 确保 TypeScript 识别 DATA_FLOW_PROCESS
+const DATA_FLOW_PROCESS = MessageType.DATA_FLOW_PROCESS;
+
 // 定义事件
 const emit = defineEmits<{
   back: [];
@@ -125,7 +128,7 @@ function handleBack() {
 
 // 处理转为数据流按钮点击
 function handleConvert() {
-  sendMsgToPlugin(MessageType.BATCH_BUTTON_CONVERT);
+  sendMsgToPlugin(MessageType.DATA_FLOW_CONVERT);
 }
 
 // 触发文件选择
@@ -348,7 +351,7 @@ function handleFill() {
   }
 
   // 发送数据到插件端处理
-  sendMsgToPlugin(MessageType.DATA_FLOW_PROCESS, {
+  sendMsgToPlugin(DATA_FLOW_PROCESS, {
     headers: parsedData.headers,
     rows: parsedData.rows,
   });
