@@ -187,11 +187,11 @@ async function processTableFile(file: File) {
     fileName: file.name
   }];
   
-  // 暂存表格数据（包含表头行）
+  // 暂存表格数据（Excel 解析结果：此处已不包含表头，全部为数据行）
   tableData.value = result.data;
   
-  // 计算数据行数（不包括表头）
-  const dataRowCount = result.data.length > 0 ? result.data.length - 1 : 0;
+  // 计算数据行数（Excel 数据全部为数据行）
+  const dataRowCount = result.data.length;
   
   sendMsgToPlugin(MessageType.SHOW_NOTIFY, {
     message: `表格解析成功，共 ${dataRowCount} 行数据`,
@@ -221,22 +221,22 @@ function parseTableData(data: any[]): { headers: string[]; rows: Record<string, 
     return null;
   }
 
-  // 第一行作为表头
+  // 第一行即为第一条数据行（Excel 解析时已使用原始表头生成字段名）
   const firstRow = data[0];
   if (!firstRow || typeof firstRow !== 'object') {
     return null;
   }
 
-  // 提取表头（对象的key）
-  const headers = Object.keys(firstRow);
+  // 提取表头（对象的 key），过滤掉内部字段（如 __rowNum__）
+  const headers = Object.keys(firstRow).filter(key => key !== '__rowNum__');
 
   if (headers.length === 0) {
     return null;
   }
 
-  // 从第二行开始是数据行
+  // 所有行都是数据行
   const rows: Record<string, any>[] = [];
-  for (let i = 1; i < data.length; i++) {
+  for (let i = 0; i < data.length; i++) {
     const row = data[i];
     if (row && typeof row === 'object') {
       rows.push(row);
