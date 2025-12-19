@@ -62,5 +62,8 @@ export enum MessageType {
   // 数据流相关
   DATA_FLOW_CONVERT = 'dataFlowConvert',
   DATA_FLOW_PROCESS = 'dataFlowProcess',
+
+  // 批量命名相关
+  BATCH_RENAME = 'batchRename',
 }
 

@@ -345,6 +345,11 @@ onUnmounted(() => {
     imgExportListener();
   }
 });
+
+// 暴露给父组件使用
+defineExpose({
+  exportList,
+});
 </script>
 
 <style lang="less" module>

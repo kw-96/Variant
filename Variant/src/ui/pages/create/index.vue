@@ -48,7 +48,7 @@
       <textarea
         v-model="dataText"
         :class="$style.textarea"
-        placeholder="*name *w *h *s *type *safeArea&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;
+        placeholder="*name *w *h *s *type *safeArea&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;
 📋复制表格(含表头)
 👆双击空白处可查看示例
 ⌨️手动输入请用[tab]隔开行内数据，[回车]换行

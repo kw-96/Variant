@@ -103,8 +103,9 @@ import Cut from './pages/cut/index.vue';
 import ButtonSizeExpansion from './pages/button-size-expansion/index.vue';
 import Create from './pages/create/index.vue';
 import Export from './pages/export/index.vue';
-import CreatePrototype from './pages/create-prototype/index.vue';
-import ExtendChannel from './pages/extend-channel/index.vue';
+import Design from './pages/design/index.vue';
+import ExportChannel from './pages/export-channel/index.vue';
+import Support from './pages/support/index.vue';
 import Toolbox from './pages/toolbox/index.vue';
 import ComponentLibrary from './pages/component-library/index.vue';
 import { MessageType, addMessageListener, sendMsgToPlugin } from '../messages';
@@ -154,15 +155,19 @@ const navList = [
     ],
   },
   {
-    name: 'H5延展',
+    name: '商店图',
     pages: [
       {
-        name: '创建原型',
-        component: CreatePrototype,
+        name: '设计',
+        component: Design,
       },
       {
-        name: '延展渠道',
-        component: ExtendChannel,
+        name: '导出',
+        component: ExportChannel,
+      },
+      {
+        name: '配套',
+        component: Support,
       },
     ],
   },

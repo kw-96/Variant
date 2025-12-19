@@ -1,9 +1,12 @@
 <template>
   <div :class="$style.container">
-    <!-- 返回按钮 -->
-    <button :class="$style.backButton" @click="handleBack" title="返回">
-      <van-icon name="arrow-left" :class="$style.backIcon" />
-    </button>
+    <!-- 标题栏 -->
+    <div :class="$style.header">
+      <button :class="$style.backButton" @click="handleBack" title="返回">
+        <van-icon name="arrow-left" :class="$style.backIcon" />
+      </button>
+      <div :class="$style.title">批量按钮</div>
+    </div>
     <!-- 页面内容 -->
     <div :class="$style.content">
       <div :class="$style.tip">
@@ -89,18 +92,24 @@ function handleGenerate() {
   right: 0;
   bottom: 0;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 32px;
-  box-sizing: border-box;
+  flex-direction: column;
   background-color: var(--bg-primary);
   z-index: 10;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-primary);
+  flex-shrink: 0;
+  z-index: 11;
 }
 
 .backButton {
-  position: absolute;
-  top: 12px;
-  left: 12px;
   width: 32px;
   height: 32px;
   display: flex;
@@ -112,7 +121,6 @@ function handleGenerate() {
   color: var(--text-primary);
   cursor: pointer;
   transition: all 0.2s;
-  z-index: 11;
   
   &:hover {
     background-color: var(--input-bg);
@@ -128,14 +136,26 @@ function handleGenerate() {
   font-size: 16px;
 }
 
+.title {
+  flex: 1;
+  text-align: right;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
 .content {
+  flex: 1;
   width: 100%;
   max-width: 360px;
+  margin: 0 auto;
+  padding: 32px;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   justify-content: center;
-  margin-top: 64px;
+  overflow-y: auto;
+  box-sizing: border-box;
 }
 
 .actionButton {

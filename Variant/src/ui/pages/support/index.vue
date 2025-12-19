@@ -1,9 +1,9 @@
 <template>
   <div :class="$style.container">
     <div :class="$style.content">
-      <van-icon name="clock-o" :class="$style.icon" />
-      <h3>功能开发中</h3>
-      <p>延展渠道功能正在开发中，敬请期待...</p>
+      <van-icon name="setting-o" :class="$style.icon" />
+      <h3>配套</h3>
+      <p>配套功能正在完善中，敬请期待...</p>
     </div>
   </div>
 </template>
