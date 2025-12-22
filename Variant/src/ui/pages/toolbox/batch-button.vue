@@ -2,9 +2,9 @@
   <div :class="$style.container">
     <!-- 标题栏 -->
     <div :class="$style.header">
-      <button :class="$style.backButton" @click="handleBack" title="返回">
-        <van-icon name="arrow-left" :class="$style.backIcon" />
-      </button>
+    <button :class="$style.backButton" @click="handleBack" title="返回">
+      <van-icon name="arrow-left" :class="$style.backIcon" />
+    </button>
       <div :class="$style.title">批量按钮</div>
     </div>
     <!-- 页面内容 -->

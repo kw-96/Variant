@@ -7,6 +7,7 @@ import {
   captureNodeGeometry,
   applyNodeGeometry,
 } from './component-utils';
+import { applyAutoLayoutProps, captureAutoLayoutProps, mergeAutoLayoutProps } from './auto-layout-props';
 
 /**
  * 解绑后的节点信息
@@ -28,6 +29,7 @@ export function convertFrameToComponent(
   frameNode: any,
   componentName: string,
   currentPage: any,
+  layoutInfo?: any, // 可选的布局信息（从解绑前捕获）
 ): any | null {
   try {
     const originalX = frameNode.x;
@@ -46,14 +48,13 @@ export function convertFrameToComponent(
     newComponent.x = frameNode.x;
     newComponent.y = frameNode.y;
 
-    // 复制Frame的视觉属性，并设置为自由布局
+    // 复制Frame的视觉属性
     copyFrameProperties(frameNode, newComponent);
-    newComponent.layoutMode = 'NONE';
-    newComponent.paddingLeft = 0;
-    newComponent.paddingRight = 0;
-    newComponent.paddingTop = 0;
-    newComponent.paddingBottom = 0;
-    newComponent.itemSpacing = 0;
+
+    // 自动布局属性：优先用外部捕获信息，其次用 frameNode 自身信息
+    const nodeAutoLayout = captureAutoLayoutProps(frameNode);
+    const finalAutoLayout = mergeAutoLayoutProps(layoutInfo, nodeAutoLayout);
+    applyAutoLayoutProps(newComponent, finalAutoLayout);
 
     // 设置组件尺寸（在迁移子节点前设置，防止约束错位）
     if (typeof targetWidth === 'number' && !Number.isNaN(targetWidth)) {
@@ -127,7 +128,9 @@ export function processNonPreviewNodes(
 
   for (const item of detachedNodes) {
     if (!item.isPreview) {
-      const newComponent = convertFrameToComponent(item.node, item.name, currentPage);
+      // 传递布局信息（如果存在）
+      const layoutInfo = (item as any).layoutInfo;
+      const newComponent = convertFrameToComponent(item.node, item.name, currentPage, layoutInfo);
       if (newComponent) {
         createdComponentsMap.set(newComponent.name, newComponent);
       }

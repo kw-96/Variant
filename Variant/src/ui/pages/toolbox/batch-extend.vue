@@ -134,19 +134,16 @@ function handleBack() {
 // 处理选中状态变化
 function handleSelectionChange(data: any) {
   // data 直接就是 selection 数组
-  console.log('选中状态变化:', data);
   
   // 验证选中状态：必须是单个组件或实例
   if (!data || !Array.isArray(data) || data.length !== 1) {
     hasValidSelection.value = false;
-    console.log('选中验证失败: 未选中或选中多个');
     return;
   }
   
   const node = data[0];
   const isValid = node.type === 'COMPONENT' || node.type === 'INSTANCE';
   hasValidSelection.value = isValid;
-  console.log(`选中验证: 类型=${node.type}, 有效=${isValid}`);
 }
 
 function resetBatchState() {
@@ -369,13 +366,11 @@ onBeforeUnmount(() => {
 
 // 触发文件选择
 function triggerFileInput() {
-  console.log('点击上传区域');
   fileInputRef.value?.click();
 }
 
 // 触发图片文件夹选择
 function triggerImageFolderInput() {
-  console.log('手动触发图片文件夹选择');
   imageFolderInputRef.value?.click();
 }
 
@@ -404,7 +399,6 @@ async function handleDrop(event: DragEvent) {
 async function processTableFile(file: File) {
   const fileName = file.name.toLowerCase();
   
-  console.log('文件已选择:', file.name);
   
   // 验证文件类型
   if (!fileName.match(/\.(xlsx|xls|csv)$/i)) {
@@ -426,7 +420,6 @@ async function processTableFile(file: File) {
     return;
   }
   
-  console.log('表格解析成功:', result.data.length, '行数据');
   
   // 保存到fileList（用于UI显示）
   fileList.value = [{
@@ -444,8 +437,7 @@ async function processTableFile(file: File) {
     
     hasImageColumns.value = imageColumns.length > 0;
     
-    if (hasImageColumns.value) {
-      console.log('检测到图片列:', imageColumns);
+    if (hasImageColumns.value) {  
       // 自动打开文件夹选择器
       sendMsgToPlugin(MessageType.SHOW_NOTIFY, {
         message: '检测到图片列，请选择图片文件夹',
@@ -456,10 +448,8 @@ async function processTableFile(file: File) {
       setTimeout(() => {
         const input = imageFolderInputRef.value;
         if (input) {
-          console.log('尝试打开文件夹选择器');
           try {
             input.click();
-            console.log('文件夹选择器已触发');
           } catch (error) {
             console.error('打开文件夹选择器失败:', error);
             // 如果自动触发失败，提示用户手动点击
@@ -505,7 +495,6 @@ async function handleImageFolderChange(event: Event) {
     return;
   }
   
-  console.log('已选择图片文件夹，共', files.length, '个文件');
   
   // 过滤出图片文件
   const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
@@ -527,7 +516,6 @@ async function handleImageFolderChange(event: Event) {
     return;
   }
   
-  console.log('有效图片数量:', validImages.length);
   
   // 只保存文件引用，不立即读取（避免卡顿）
   imageFiles.value = validImages;
@@ -538,7 +526,6 @@ async function handleImageFolderChange(event: Event) {
     timeout: 2000,
   });
   
-  console.log('图片文件已保存引用，将在执行批量时读取');
 }
 
 // 处理批量操作
@@ -649,8 +636,6 @@ async function handleBatch() {
   processingImageFileNames.value = imageFiles.value.map(f => f.name);
   totalRows.value = prepareTasks.length;
   isBatching.value = true;
-
-  console.log(`准备开始批量操作，共 ${prepareTasks.length} 条数据，拆分为多阶段执行。`);
 
   // 释放原始表格数据引用
   tableData.value = [];

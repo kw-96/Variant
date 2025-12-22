@@ -348,7 +348,6 @@ async function handleFinalize(payload: { totalRows?: number }) {
       mg.document.currentPage.selection = nodes;
     }
 
-    console.log(`批量延展完成: 共创建 ${createdNodeIdPool.length} 个节点`);
     mg.notify(`批量延展完成: 共创建 ${createdNodeIdPool.length} 个节点`, { timeout: 3000 });
     await mg.clientStorage.deleteAsync('batch_extend_table_data');
 

@@ -70,7 +70,6 @@ export async function handleExcelUpload(file: File): Promise<FileUploadResult> {
         // 转换为JSON
         const jsonData = XLSX.utils.sheet_to_json(ws);
         
-        console.log('Excel数据加载成功:', jsonData.length, '条记录');
         resolve({
           data: jsonData as any[],
           success: true,
@@ -113,7 +112,6 @@ export async function handleJsonFileUpload(file: File): Promise<FileUploadResult
         
         const data = Array.isArray(jsonData) ? jsonData : [jsonData];
         
-        console.log('JSON数据加载成功:', data.length, '条记录');
         resolve({
           data,
           success: true,

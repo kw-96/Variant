@@ -45,8 +45,6 @@ const onFileDrop = async (files: File[]) => {
   validFiles.value = []; // 清空之前的文件名
   parsedConfigs.value = []; // 清空之前的配置
 
-  console.log('开始处理文件:', files.length);
-
   // 筛选 Excel 文件
   const excelFiles = files.filter(file => file.name.endsWith('.xlsx'));
 
@@ -62,8 +60,6 @@ const onFileDrop = async (files: File[]) => {
     if (result.success) {
       validFiles.value.push(file.name);
       
-      console.log('Excel解析结果:', result.data);
-
       const newConfig = {
         id: generateRandomId(),
         platform: file.name.replace('.xlsx', ''),
@@ -76,11 +72,8 @@ const onFileDrop = async (files: File[]) => {
         })),
       };
       
-      console.log('创建的新配置:', newConfig);
-      
       // 将新配置添加到数组中
       parsedConfigs.value.push(newConfig);
-      console.log('更新后的parsedConfigs:', parsedConfigs.value);
     } else {
       showToast(result.error || '文件解析失败');
     }
@@ -88,7 +81,6 @@ const onFileDrop = async (files: File[]) => {
 
   // 等待所有文件处理完成
   await Promise.all(filePromises);
-  console.log('所有文件处理完成，最终 parsedConfigs:', parsedConfigs.value);
 };
 </script>
 

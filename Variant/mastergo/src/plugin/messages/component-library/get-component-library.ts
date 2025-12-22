@@ -14,7 +14,6 @@ interface ComponentInfo {
 }
 
 async function handler() {
-  console.log('Handler: get-component-library triggered');
   try {
 
     const teamLibraries = await mg.getTeamLibraryAsync();
@@ -32,9 +31,7 @@ async function handler() {
         
         // 防御性获取库名
         const libName = lib.name ? String(lib.name) : '未命名库';
-        // 调试日志：打印库名
-        // console.log('Processing lib:', libName);
-
+        
         if (lib.componentList && Array.isArray(lib.componentList) && lib.componentList.length > 0) {
             lib.componentList.forEach((comp: any) => {
                 if (!comp) return;
@@ -54,8 +51,6 @@ async function handler() {
             });
         }
     }
-
-    console.log(`Processed ${allComponents.length} components.`);
     
     if (allComponents.length === 0) {
       sendMsgToUI(MessageType.SHOW_NOTIFY, { message: '团队库中暂无组件', timeout: 2000 });
@@ -64,7 +59,6 @@ async function handler() {
     }
 
     sendMsgToUI(MessageType.GET_COMPONENT_LIBRARY, { components: allComponents });
-    console.log('Sent GET_COMPONENT_LIBRARY message to UI');
     
   } catch (error: any) {
     console.error('获取组件列表失败 (Exception):', error);

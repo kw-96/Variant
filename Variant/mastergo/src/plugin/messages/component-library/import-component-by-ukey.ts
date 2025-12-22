@@ -1,14 +1,16 @@
 // @ts-nocheck
 import { MessageType } from '../../../../../src/messages';
-import { replaceInternalInstances } from './component-utils';
-import { calculateGroupSizes, arrangeComponentLayout } from './layout-calculator';
-import { processNonPreviewNodes } from './frame-to-component';
+import { importRequiredComponentSet } from './import-required-component-set';
+import { processImportedInstances } from './import-processing';
+import { isPreviewNode, replaceInternalInstances } from './component-utils';
+import { calculateGroupSizes } from './layout-calculator';
 
 /**
  * 通过 ukey 导入组件
  * @param data.groups 按描述分组的组件列表 [{ description: string, ukeys: string[] }]
+ * @param data.skipConvert 是否跳过转换步骤（第五步和第六步），商店图导入时设为 true
  */
-async function handler(data: { groups?: Array<{ description: string; ukeys: string[] }>, ukeys?: string[] }) {
+async function handler(data: { groups?: Array<{ description: string; ukeys: string[] }>, ukeys?: string[], skipConvert?: boolean }) {
   // 兼容旧格式：如果传递的是 ukeys 数组，转换为 groups 格式
   let groups: Array<{ description: string; ukeys: string[] }> = [];
   if (data.groups && Array.isArray(data.groups)) {
@@ -33,22 +35,73 @@ async function handler(data: { groups?: Array<{ description: string; ukeys: stri
   const descriptionGroups: Array<{ description: string; instances: any[] }> = [];
   let successCount = 0;
   let failCount = 0;
+  const skipConvert = data.skipConvert === true; // 商店图导入时跳过转换步骤
 
-  // 1. 按描述分组导入所有组件并创建实例
+  // 必需的组件集描述（这些组件集需要使用专门的导入函数）
+  const requiredOrder = ['背景', 'IP', 'LOGO', '主题'];
+  const requiredComponentSetDescriptions = requiredOrder;
+
+  // 获取团队库，用于检查组件类型
+  let teamLibraries: any[] = [];
+  try {
+    teamLibraries = await mg.getTeamLibraryAsync();
+  } catch (error) {
+    console.warn('获取团队库失败，将跳过组件类型检查:', error);
+  }
+
+  // 建立ukey到组件的映射
+  const ukeyToComponentMap = new Map<string, any>();
+  for (const lib of teamLibraries) {
+    if (lib && lib.componentList && Array.isArray(lib.componentList)) {
+      lib.componentList.forEach((comp: any) => {
+        if (comp && comp.ukey) {
+          ukeyToComponentMap.set(String(comp.ukey), comp);
+        }
+      });
+    }
+  }
+
+  // 1) 先收集普通组件实例（用于计算布局）
+  // 2) 再导入普通组件（以及非必需组件集会被跳过）
   for (const group of groups) {
     const instances: any[] = [];
     
     for (const ukey of group.ukeys) {
       try {
-        const componentNode = await mg.importComponentByKeyAsync(ukey);
-        if (componentNode) {
-          const instance = componentNode.createInstance();
-          currentPage.appendChild(instance);
-          instances.push(instance);
-          successCount++;
-        } else {
+        // 检查 ukey 是否有效
+        if (!ukey || typeof ukey !== 'string' || ukey.trim() === '') {
+          console.error(`无效的 ukey: ${ukey}`);
           failCount++;
+          continue;
         }
+
+        // 跳过 4 个必需组件集（已在第一阶段处理）
+        if (requiredComponentSetDescriptions.includes(group.description)) continue;
+
+        // 跳过非必需组件集（避免 importComponentByKeyAsync 报错）
+        const componentInfo = ukeyToComponentMap.get(ukey);
+        if (componentInfo && componentInfo.type === 'COMPONENT_SET') continue;
+
+        if (typeof mg.importComponentByKeyAsync !== 'function') {
+          failCount++;
+          continue;
+        }
+
+        const componentNode = await mg.importComponentByKeyAsync(ukey);
+        if (!componentNode || typeof componentNode.createInstance !== 'function') {
+          failCount++;
+          continue;
+        }
+
+        const instance = componentNode.createInstance();
+        if (!instance) {
+          failCount++;
+          continue;
+        }
+
+        currentPage.appendChild(instance);
+        instances.push(instance);
+        successCount++;
       } catch (error) {
         console.error(`导入组件失败 (ukey: ${ukey}):`, error);
         failCount++;
@@ -58,8 +111,8 @@ async function handler(data: { groups?: Array<{ description: string; ukeys: stri
     if (instances.length > 0) {
       // 在描述组内排序：名称不含"预览"的在前，含"预览"的在后
       instances.sort((a, b) => {
-        const aIsPreview = a.name.includes('预览');
-        const bIsPreview = b.name.includes('预览');
+        const aIsPreview = isPreviewNode(a);
+        const bIsPreview = isPreviewNode(b);
         if (aIsPreview && !bIsPreview) return 1;
         if (!aIsPreview && bIsPreview) return -1;
         return 0;
@@ -73,61 +126,118 @@ async function handler(data: { groups?: Array<{ description: string; ukeys: stri
   }
 
   if (descriptionGroups.length === 0) {
+    // 如果没有普通组件，直接处理必需组件集
+    const requiredMap = new Map<string, string>();
+    groups.forEach(g => {
+      if (requiredComponentSetDescriptions.includes(g.description) && Array.isArray(g.ukeys) && g.ukeys[0]) {
+        requiredMap.set(g.description, String(g.ukeys[0]));
+      }
+    });
+
+    let setX = viewportCenter.x;
+    const defaultSetY = viewportCenter.y - 360;
+    for (const desc of requiredOrder) {
+      const ukey = requiredMap.get(desc);
+      if (!ukey) continue;
+      try {
+        const result = await importRequiredComponentSet(ukey, desc, currentPage, { x: setX, y: defaultSetY, gap: 20 });
+        if (result?.success) {
+          successCount++;
+          if (typeof result.endX === 'number') setX = result.endX;
+        } else {
+          failCount++;
+        }
+      } catch (e) {
+        console.error(`导入组件集失败 (${desc}):`, e);
+        failCount++;
+      }
+    }
+
     if (failCount > 0) {
-       mg.notify(`导入失败，请检查组件是否在团队库中`, { timeout: 3000 });
+      mg.notify(`导入失败，请检查组件是否在团队库中`, { timeout: 3000 });
     }
     return;
   }
 
-  // 2. 计算每个描述组的尺寸
-  const groupSizes = calculateGroupSizes(descriptionGroups);
-
-  // 3. 按行列排列组件
-  arrangeComponentLayout(descriptionGroups, groupSizes, viewportCenter);
-
-  // 收集所有实例用于后续处理
-  const instances: any[] = [];
+  // 3) 先排列普通组件（在插件界面中显示出来的导入内容），但不替换实例（因为必需组件集还未导入）
+  // 保存普通组件实例的名称列表，用于后续识别
+  const normalComponentNames = new Set<string>();
   descriptionGroups.forEach(group => {
-    instances.push(...group.instances);
+    group.instances.forEach(inst => {
+      if (inst && inst.name) {
+        normalComponentNames.add(String(inst.name));
+      }
+    });
   });
 
-  // 4. 立即解绑所有实例
-  const detachedNodes: any[] = [];
+  const firstNormalComponentPos = processImportedInstances(descriptionGroups, currentPage, viewportCenter, skipConvert);
 
-  for (const instance of instances) {
+  // 4) 根据首个普通组件的位置，计算必需组件集的位置
+  let requiredSetX = viewportCenter.x; // 默认值
+  let requiredSetY = viewportCenter.y - 360; // 默认值
+  if (firstNormalComponentPos !== null && typeof firstNormalComponentPos === 'object') {
+    // 必需组件集的首个组件放在首个普通组件的正上方，间距 3000
+    const componentSetSpacing = 3000;
+    requiredSetX = firstNormalComponentPos.x;
+    requiredSetY = firstNormalComponentPos.y - componentSetSpacing;
+  } else {
+    console.warn('未获取到首个普通组件位置，使用默认值');
+  }
+
+  // 5) 按固定顺序处理 4 个组件集（横向一排：背景、IP、LOGO、主题；每组先横后竖）
+  const requiredMap = new Map<string, string>();
+  groups.forEach(g => {
+    if (requiredComponentSetDescriptions.includes(g.description) && Array.isArray(g.ukeys) && g.ukeys[0]) {
+      requiredMap.set(g.description, String(g.ukeys[0]));
+    }
+  });
+
+  // 给组件集一条单独的横向排布行，首个组件放在首个普通组件的正上方
+  // 同时收集所有必需组件集的组件（用于替换普通组件内部的实例）
+  const requiredComponentsMap = new Map<string, any>();
+  let setX = requiredSetX;
+  for (const desc of requiredOrder) {
+    const ukey = requiredMap.get(desc);
+    if (!ukey) continue;
     try {
-      const isPreview = instance.name.includes('预览');
-      const name = instance.name;
-      
-      const detachedNode = instance.detachInstance();
-      if (detachedNode) {
-        detachedNodes.push({
-          node: detachedNode,
-          name: name,
-          isPreview: isPreview
-        });
+      const result = await importRequiredComponentSet(ukey, desc, currentPage, { x: setX, y: requiredSetY, gap: 20 });
+      if (result?.success) {
+        successCount++;
+        if (typeof result.endX === 'number') setX = result.endX;
+        // 收集必需组件集的组件
+        if (result.components && result.components.size > 0) {
+          result.components.forEach((component, name) => {
+            requiredComponentsMap.set(name, component);
+          });
+        }
       } else {
-        console.warn(`解绑实例失败: ${name}`);
+        failCount++;
       }
-    } catch (error) {
-      console.error('解绑实例出错:', error);
+    } catch (e) {
+      console.error(`导入组件集失败 (${desc}):`, e);
+      failCount++;
     }
   }
 
-  // 5. 处理非"预览"节点：将Frame转换为Component
-  const createdComponentsMap = processNonPreviewNodes(detachedNodes, currentPage);
-
-  // 6. 处理"预览"节点：替换内部实例
-  for (const item of detachedNodes) {
-    if (item.isPreview) {
-      try {
-          const previewFrame = item.node;
-          
-          // 递归查找并替换子节点中的实例
-          replaceInternalInstances(previewFrame, createdComponentsMap);
-      } catch (error) {
-          console.error(`处理预览节点失败 (${item.name}):`, error);
+  // 6) 如果商店图导入（skipConvert: true），替换普通组件内部的实例为必需组件集的组件实例
+  if (skipConvert && requiredComponentsMap.size > 0) {
+    // 遍历当前页面的所有节点，查找普通组件（解绑后的 Frame 节点），替换其内部的实例
+    try {
+      const pageChildren = currentPage.children || [];
+      for (const child of pageChildren) {
+        if (child && child.type === 'FRAME') {
+          // 检查是否是普通组件（通过名称匹配）
+          if (normalComponentNames.has(child.name)) {
+            try {
+              replaceInternalInstances(child, requiredComponentsMap);
+            } catch (e) {
+              console.error(`替换普通组件内部实例失败 (${child.name}):`, e);
+            }
+          }
+        }
       }
+    } catch (e) {
+      console.error('替换普通组件内部实例时出错:', e);
     }
   }
 
@@ -144,4 +254,3 @@ export default {
   type: MessageType.IMPORT_COMPONENT_BY_UKEY,
   handler,
 };
-

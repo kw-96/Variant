@@ -169,11 +169,19 @@ const groupedComponentList = computed<ComponentGroup[]>(() => {
   return Object.keys(groups).map(key => groups[key]);
 });
 
+// 需要屏蔽的关键词
+const hiddenKeywords = ['在线游戏', '新游预约'];
+
+// 检查是否包含屏蔽关键词
+function containsHiddenKeyword(text: string): boolean {
+  return hiddenKeywords.some(keyword => text.includes(keyword));
+}
+
 // 动态生成标签列表（基于分组分类/库名）
 const tagList = computed<Tag[]>(() => {
   const tags = new Set<string>();
   groupedComponentList.value.forEach(group => {
-    if (group.category) {
+    if (group.category && !containsHiddenKeyword(group.category)) {
       tags.add(group.category);
     }
   });
@@ -189,6 +197,11 @@ const tagList = computed<Tag[]>(() => {
 // 筛选分组
 const filteredGroups = computed(() => {
   return groupedComponentList.value.filter(group => {
+    // 屏蔽包含关键词的分组
+    if (containsHiddenKeyword(group.category) || containsHiddenKeyword(group.description)) {
+      return false;
+    }
+    
     const tagMatch = activeTag.value === 'all' || group.category === activeTag.value;
     // 搜索匹配描述
     const searchMatch = group.description.toLowerCase().includes(searchValue.value.toLowerCase());
@@ -264,7 +277,6 @@ onMounted(() => {
   
   // 注册消息监听
   removeListener = addMessageListener(MessageType.GET_COMPONENT_LIBRARY, (data: any) => {
-    console.log('UI received component list:', data);
     
     // 修复：解析插件返回的数据结构 { components: [...] }
     if (data && Array.isArray(data.components)) {

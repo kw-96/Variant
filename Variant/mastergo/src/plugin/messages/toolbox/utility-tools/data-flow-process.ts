@@ -93,8 +93,8 @@ function switchComponentSetVariant(instance: any, desiredVariantName: string): b
 
   if (!propKey) {
     console.warn('变体属性缺少 property 字段，无法切换组件集变体');
-    return false;
-  }
+      return false;
+    }
 
   // 不同版本 SDK 中字段命名可能不同，这里做一次兼容性兜底
   let variantOptions: string[] = [];
@@ -131,21 +131,21 @@ function switchComponentSetVariant(instance: any, desiredVariantName: string): b
   }
 
   if (typeof (instance as any).setVariantPropertyValues === 'function') {
-    try {
+      try {
       (instance as any).setVariantPropertyValues({ [propKey]: finalValue });
-      return true;
-    } catch (error) {
+        return true;
+      } catch (error) {
       console.warn('setVariantPropertyValues 调用失败，尝试 setProperties', error);
+      }
     }
-  }
-
+    
   if (typeof instance.setProperties === 'function') {
     try {
       instance.setProperties({ [propKey]: finalValue });
       return true;
-    } catch (error) {
+  } catch (error) {
       console.warn('setProperties 调用失败，无法切换组件集变体', error);
-    }
+  }
   }
 
   console.warn('无法切换组件集变体（API 均失败）');

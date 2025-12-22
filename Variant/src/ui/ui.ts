@@ -29,7 +29,6 @@ import inputDblclickSelect from './directives/input-dblclick-select';
 
 // 应用主题
 function applyTheme(theme: string) {
-  console.log('Applying theme:', theme);
   document.documentElement.setAttribute('data-theme', theme);
 }
 

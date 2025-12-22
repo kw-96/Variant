@@ -50,13 +50,10 @@ export function useStandardConfigs(
   watch(
     () => initConfigs,
     newConfigs => {
-      console.log('useStandardConfigs 监听到 initConfigs 变化:', newConfigs);
       if (newConfigs && newConfigs.length > 0) {
         configs.value = [...newConfigs]; // 更新 configs
-        console.log('useStandardConfigs 更新 configs:', configs.value);
 
         activeConfig.value = configs.value[0]; // 设置 activeConfig
-        console.log('useStandardConfigs 设置 activeConfig:', activeConfig.value);
         isExternalConfig.value = true; // 标记为外部配置
       }
     },
