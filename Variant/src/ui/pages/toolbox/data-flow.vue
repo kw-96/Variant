@@ -71,13 +71,13 @@
 
         <!-- 文本输入框 -->
         <div v-else :class="$style.textInputSection">
-          <van-field
+          <TabTextarea
             v-model="inputValue"
+            type="vant"
             :class="$style.inputField"
-            rows="6"
-            type="textarea"
+            :rows="6"
             placeholder="手动输入请用[tab]隔开行内数据，[回车]换行"
-            show-word-limit
+            :show-word-limit="true"
           />
         </div>
       </div>
@@ -98,6 +98,7 @@
 import { ref } from 'vue';
 import { MessageType, sendMsgToPlugin } from '../../../messages';
 import { handleExcelUpload } from '../../utils/fileUploadHandler';
+import TabTextarea from '../../components/TabTextarea.vue';
 
 // 确保 TypeScript 识别 DATA_FLOW_PROCESS
 const DATA_FLOW_PROCESS = MessageType.DATA_FLOW_PROCESS;
@@ -552,54 +553,20 @@ function handleFill() {
 }
 
 .inputField {
-  width: 100%;
   height: 100%;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background: var(--bg-primary);
-  transition: border-color 0.2s;
-  
-  &:focus-within {
-    border-color: var(--button-primary-bg);
-  }
   
   :global(.van-field__body) {
-    align-items: flex-start;
-    padding: 0;
     height: 100%;
   }
   
   :global(.van-field__control) {
-    width: 100%;
     height: 220px;
     min-height: 220px;
     max-height: 220px;
-    padding: 12px;
-    text-align: left;
-    font-family: 'Courier New', monospace;
-    font-size: 12px;
-    color: var(--text-primary);
-    line-height: 1.4;
-    background: transparent;
-    box-sizing: border-box;
   }
   
   :global(textarea) {
-    resize: none;
     height: 100%;
-  }
-  
-  :global(.van-field__control::placeholder) {
-    color: var(--text-secondary);
-    opacity: 0.5;
-  }
-  
-  :global(.van-field__word-limit) {
-    width: 100%;
-    text-align: right;
-    padding: 0 12px 8px;
-    color: var(--text-secondary);
-    font-size: 12px;
   }
 }
 

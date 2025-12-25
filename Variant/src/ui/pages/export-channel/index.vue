@@ -4,9 +4,9 @@
     <div :class="$style.batchRenameSection">
       <!-- 首行：左侧文本输入框，右侧下拉选择框 -->
       <div :class="$style.renameRow">
-        <van-field
+        <TabInput
           v-model="renameText"
-          :class="$style.renameInput"
+          size="small"
           placeholder="请输入要插入的文本"
         />
         <select
@@ -40,6 +40,7 @@
 import { ref, computed } from 'vue';
 import { MessageType, sendMsgToPlugin } from '../../../messages';
 import Export from '../export/index.vue';
+import TabInput from '../../components/TabInput.vue';
 
 // 批量命名相关
 const renameText = ref('');
@@ -92,32 +93,6 @@ function handleBatchRename() {
   margin-bottom: 8px;
 }
 
-.renameInput {
-  height: 36px;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background: var(--bg-primary);
-  transition: border-color 0.2s;
-  
-  :global(.van-field__body) {
-    padding: 0;
-    display: flex;
-    align-items: center;
-  }
-  
-  :global(.van-field__control) {
-    font-size: 16px;
-    height: auto;
-    line-height: 1.2;
-    padding: 0 8px;
-    color: var(--text-secondary);
-    
-    &::placeholder {
-      font-size: 10px;
-      color: var(--input-placeholder);
-    }
-  }
-}
 
 .positionSelect {
   width: 120px;

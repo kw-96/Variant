@@ -298,12 +298,7 @@ function handleImport() {
 
   if (groups.length > 0) {
     sendMsgToPlugin(MessageType.IMPORT_COMPONENT_BY_UKEY, { groups, skipConvert: true });
-    
-    // 模拟导入完成状态清除
-    setTimeout(() => {
-      isImporting.value = false;
-      selectedGroupKeys.value = []; // 清空选择
-    }, 1000);
+    // 导入状态将在收到导入完成消息后清除
   } else {
     isImporting.value = false;
   }
@@ -311,6 +306,7 @@ function handleImport() {
 
 // 消息监听清理函数
 let removeListener: (() => void) | null = null;
+let importCompleteListener: (() => void) | null = null;
 let loadTimeout: any = null;
 
 onMounted(() => {
@@ -327,7 +323,6 @@ onMounted(() => {
       // 兼容直接返回数组的情况
       componentList.value = data;
     } else {
-      console.warn('Received invalid data format:', data);
       componentList.value = [];
     }
 
@@ -338,6 +333,12 @@ onMounted(() => {
     }
   });
 
+  // 监听导入完成消息
+  importCompleteListener = addMessageListener(MessageType.IMPORT_COMPONENT_COMPLETE, () => {
+    isImporting.value = false;
+    selectedGroupKeys.value = []; // 清空选择
+  });
+
   // 请求组件数据
   sendMsgToPlugin(MessageType.GET_COMPONENT_LIBRARY);
   
@@ -346,7 +347,6 @@ onMounted(() => {
     if (isLoading.value) {
       isLoading.value = false;
       loadError.value = true;
-      console.warn('加载组件库超时 (3s)');
     }
   }, 3000);
 });
@@ -354,6 +354,9 @@ onMounted(() => {
 onUnmounted(() => {
   if (removeListener) {
     removeListener();
+  }
+  if (importCompleteListener) {
+    importCompleteListener();
   }
   if (loadTimeout) {
     clearTimeout(loadTimeout);

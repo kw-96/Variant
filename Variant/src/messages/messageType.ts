@@ -58,6 +58,7 @@ export enum MessageType {
   // 组件库相关
   GET_COMPONENT_LIBRARY = 'getComponentLibrary',
   IMPORT_COMPONENT_BY_UKEY = 'importComponentByUkey',
+  IMPORT_COMPONENT_COMPLETE = 'importComponentComplete',
 
   // 数据流相关
   DATA_FLOW_CONVERT = 'dataFlowConvert',

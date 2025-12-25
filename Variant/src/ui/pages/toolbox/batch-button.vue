@@ -25,13 +25,13 @@
         <van-icon name="arrow-down" />
       </div>
 
-      <van-field
+      <TabTextarea
         v-model="inputValue"
+        type="vant"
         :class="$style.inputField"
-        rows="6"
-        type="textarea"
-        placeholder="请输入文本内容，使用换行分隔"
-        show-word-limit
+        :rows="6"
+        placeholder="请输入文本内容，使用[回车]换行分隔"
+        :show-word-limit="true"
       />
 
       <van-button
@@ -49,6 +49,7 @@
 <script lang="ts" setup>
 import { ref } from 'vue';
 import { MessageType, sendMsgToPlugin } from '../../../messages';
+import TabTextarea from '../../components/TabTextarea.vue';
 
 // 定义事件
 const emit = defineEmits<{
@@ -194,50 +195,7 @@ function handleGenerate() {
 }
 
 .inputField {
-  width: 100%;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background: var(--bg-primary);
   margin-top: 8px;
-  transition: border-color 0.2s;
-  
-  &:focus-within {
-    border-color: var(--button-primary-bg);
-  }
-  
-  :global(.van-field__body) {
-    align-items: flex-start;
-    padding: 0;
-  }
-  
-  :global(.van-field__control) {
-    width: 100%;
-    min-height: 260px;
-    padding: 12px;
-    text-align: left;
-    font-family: 'Courier New', monospace;
-    font-size: 12px;
-    color: var(--text-primary);
-    line-height: 1.4;
-    background: transparent;
-  }
-  
-  :global(textarea) {
-    resize: none;
-  }
-  
-  :global(.van-field__control::placeholder) {
-    color: var(--text-secondary);
-    opacity: 0.5;
-  }
-  
-  :global(.van-field__word-limit) {
-    width: 100%;
-    text-align: right;
-    padding: 0 12px 8px;
-    color: var(--text-secondary);
-    font-size: 12px;
-  }
 }
 
 </style>

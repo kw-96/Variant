@@ -172,9 +172,17 @@ const groupedComponentList = computed<ComponentGroup[]>(() => {
 // 需要屏蔽的关键词
 const hiddenKeywords = ['在线游戏', '新游预约'];
 
+// 需要屏蔽的描述关键词（不显示包含这些关键词的内容）
+const excludedDescriptionKeywords = ['背景', 'LOGO', 'IP', '主题'];
+
 // 检查是否包含屏蔽关键词
 function containsHiddenKeyword(text: string): boolean {
   return hiddenKeywords.some(keyword => text.includes(keyword));
+}
+
+// 检查是否包含屏蔽的描述关键词
+function containsExcludedDescriptionKeyword(text: string): boolean {
+  return excludedDescriptionKeywords.some(keyword => text.includes(keyword));
 }
 
 // 动态生成标签列表（基于分组分类/库名）
@@ -200,6 +208,30 @@ const filteredGroups = computed(() => {
     // 屏蔽包含关键词的分组
     if (containsHiddenKeyword(group.category) || containsHiddenKeyword(group.description)) {
       return false;
+    }
+    
+    // 排除包含屏蔽描述关键词的分组
+    if (containsExcludedDescriptionKeyword(group.description)) {
+      return false;
+    }
+    
+    // 如果分组描述为空（"无描述"），检查该分组中的组件是否可能是被屏蔽组件集的内部组件
+    if (!group.description || group.description.trim() === '') {
+      // 检查该分组中是否有组件集类型的组件
+      const hasComponentSet = group.components.some(comp => comp.type === 'COMPONENT_SET');
+      // 如果都是普通组件且没有组件集，可能是被屏蔽组件集的内部组件
+      if (!hasComponentSet && group.components.length > 0) {
+        // 检查是否存在同名的组件集（描述包含屏蔽关键词）
+        const hasMatchingComponentSet = componentList.value.some(comp => 
+          comp.type === 'COMPONENT_SET' &&
+          containsExcludedDescriptionKeyword(comp.description) &&
+          comp.category === group.category
+        );
+        // 如果存在匹配的组件集，则隐藏该"无描述"分组
+        if (hasMatchingComponentSet) {
+          return false;
+        }
+      }
     }
     
     const tagMatch = activeTag.value === 'all' || group.category === activeTag.value;
@@ -235,6 +267,7 @@ function handleImport() {
   // 按描述分组收集组件 ukey
   const descriptionGroups = new Map<string, string[]>();
   
+  // 1. 收集用户选中的组件
   groupedComponentList.value.forEach(group => {
     if (selectedGroupKeys.value.indexOf(group.key) !== -1) {
       const description = group.description || '未命名';
@@ -247,6 +280,29 @@ function handleImport() {
     }
   });
 
+  // 2. 自动添加"背景"、"LOGO"、"IP"、"主题"描述的组件集
+  // 每个描述只添加一套（选择第一个匹配的组件集）
+  const addedDescriptions = new Set(descriptionGroups.keys());
+  const requiredDescriptions = ['背景', 'LOGO', 'IP', '主题'];
+  
+  requiredDescriptions.forEach(requiredDesc => {
+    // 如果该描述还没有被添加，则查找并添加第一个匹配的组件集
+    if (!addedDescriptions.has(requiredDesc)) {
+      const matchedComponent = componentList.value.find(comp => 
+        comp.type === 'COMPONENT_SET' &&
+        comp.description === requiredDesc
+      );
+      
+      if (matchedComponent) {
+        if (!descriptionGroups.has(requiredDesc)) {
+          descriptionGroups.set(requiredDesc, []);
+        }
+        descriptionGroups.get(requiredDesc)!.push(matchedComponent.ukey);
+        addedDescriptions.add(requiredDesc);
+      }
+    }
+  });
+
   // 转换为数组格式：{ description, ukeys }
   const groups = Array.from(descriptionGroups.entries()).map(([description, ukeys]) => ({
     description,
@@ -255,12 +311,7 @@ function handleImport() {
 
   if (groups.length > 0) {
     sendMsgToPlugin(MessageType.IMPORT_COMPONENT_BY_UKEY, { groups });
-    
-    // 模拟导入完成状态清除
-    setTimeout(() => {
-      isImporting.value = false;
-      selectedGroupKeys.value = []; // 清空选择
-    }, 1000);
+    // 导入状态将在收到导入完成消息后清除
   } else {
     isImporting.value = false;
   }
@@ -268,6 +319,7 @@ function handleImport() {
 
 // 消息监听清理函数
 let removeListener: (() => void) | null = null;
+let importCompleteListener: (() => void) | null = null;
 let loadTimeout: any = null;
 
 onMounted(() => {
@@ -277,7 +329,6 @@ onMounted(() => {
   
   // 注册消息监听
   removeListener = addMessageListener(MessageType.GET_COMPONENT_LIBRARY, (data: any) => {
-    
     // 修复：解析插件返回的数据结构 { components: [...] }
     if (data && Array.isArray(data.components)) {
       componentList.value = data.components;
@@ -285,7 +336,6 @@ onMounted(() => {
       // 兼容直接返回数组的情况
       componentList.value = data;
     } else {
-      console.warn('Received invalid data format:', data);
       componentList.value = [];
     }
 
@@ -296,6 +346,12 @@ onMounted(() => {
     }
   });
 
+  // 监听导入完成消息
+  importCompleteListener = addMessageListener(MessageType.IMPORT_COMPONENT_COMPLETE, () => {
+    isImporting.value = false;
+    selectedGroupKeys.value = []; // 清空选择
+  });
+
   // 请求组件数据
   sendMsgToPlugin(MessageType.GET_COMPONENT_LIBRARY);
   
@@ -304,7 +360,6 @@ onMounted(() => {
     if (isLoading.value) {
       isLoading.value = false;
       loadError.value = true;
-      console.warn('加载组件库超时 (3s)');
     }
   }, 3000);
 });
@@ -312,6 +367,9 @@ onMounted(() => {
 onUnmounted(() => {
   if (removeListener) {
     removeListener();
+  }
+  if (importCompleteListener) {
+    importCompleteListener();
   }
   if (loadTimeout) {
     clearTimeout(loadTimeout);

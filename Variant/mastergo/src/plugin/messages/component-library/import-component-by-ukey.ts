@@ -1,8 +1,8 @@
 // @ts-nocheck
-import { MessageType } from '../../../../../src/messages';
+import { MessageType, sendMsgToUI } from '../../../../../src/messages';
 import { importRequiredComponentSet } from './import-required-component-set';
 import { processImportedInstances } from './import-processing';
-import { isPreviewNode, replaceInternalInstances } from './component-utils';
+import { isPreviewNode, replaceInternalInstances, parseErrorReason, REQUIRED_COMPONENT_SET_ORDER, REQUIRED_COMPONENT_SET_DESCRIPTIONS } from './component-utils';
 import { calculateGroupSizes } from './layout-calculator';
 
 /**
@@ -22,12 +22,22 @@ async function handler(data: { groups?: Array<{ description: string; ukeys: stri
   
   if (!groups || groups.length === 0) {
     mg.notify('请选择要导入的组件', { timeout: 2000 });
+    sendMsgToUI(MessageType.IMPORT_COMPONENT_COMPLETE, {
+      success: false,
+      successCount: 0,
+      failCount: 0,
+    });
     return;
   }
 
   const currentPage = mg.document.currentPage;
   if (!currentPage) {
     mg.notify('当前页面不可用', { timeout: 2000 });
+    sendMsgToUI(MessageType.IMPORT_COMPONENT_COMPLETE, {
+      success: false,
+      successCount: 0,
+      failCount: 0,
+    });
     return;
   }
 
@@ -36,10 +46,7 @@ async function handler(data: { groups?: Array<{ description: string; ukeys: stri
   let successCount = 0;
   let failCount = 0;
   const skipConvert = data.skipConvert === true; // 商店图导入时跳过转换步骤
-
-  // 必需的组件集描述（这些组件集需要使用专门的导入函数）
-  const requiredOrder = ['背景', 'IP', 'LOGO', '主题'];
-  const requiredComponentSetDescriptions = requiredOrder;
+  const failedUkeys = new Map<string, string>(); // 记录失败的 ukey 和原因，用于汇总错误信息
 
   // 获取团队库，用于检查组件类型
   let teamLibraries: any[] = [];
@@ -70,13 +77,13 @@ async function handler(data: { groups?: Array<{ description: string; ukeys: stri
       try {
         // 检查 ukey 是否有效
         if (!ukey || typeof ukey !== 'string' || ukey.trim() === '') {
-          console.error(`无效的 ukey: ${ukey}`);
+          failedUkeys.set(ukey, '无效的 ukey');
           failCount++;
           continue;
         }
 
         // 跳过 4 个必需组件集（已在第一阶段处理）
-        if (requiredComponentSetDescriptions.includes(group.description)) continue;
+        if (REQUIRED_COMPONENT_SET_DESCRIPTIONS.has(group.description)) continue;
 
         // 跳过非必需组件集（避免 importComponentByKeyAsync 报错）
         const componentInfo = ukeyToComponentMap.get(ukey);
@@ -87,8 +94,20 @@ async function handler(data: { groups?: Array<{ description: string; ukeys: stri
           continue;
         }
 
-        const componentNode = await mg.importComponentByKeyAsync(ukey);
+        let componentNode: any;
+        try {
+          componentNode = await mg.importComponentByKeyAsync(ukey);
+        } catch (error: any) {
+          // 捕获导入错误，包括可能的 2022-return:5 等内部错误
+          failedUkeys.set(ukey, parseErrorReason(error));
+          failCount++;
+          continue;
+        }
+        
+        // 如果返回 null 或无效，也可能是 2022-return:5 错误（MasterGo 内部可能不抛异常，而是返回 null）
         if (!componentNode || typeof componentNode.createInstance !== 'function') {
+          // 记录失败信息（可能是组件不存在或权限不足导致的返回 null）
+          failedUkeys.set(ukey, '组件不存在或返回无效');
           failCount++;
           continue;
         }
@@ -102,8 +121,8 @@ async function handler(data: { groups?: Array<{ description: string; ukeys: stri
         currentPage.appendChild(instance);
         instances.push(instance);
         successCount++;
-      } catch (error) {
-        console.error(`导入组件失败 (ukey: ${ukey}):`, error);
+      } catch (error: any) {
+        failedUkeys.set(ukey, parseErrorReason(error));
         failCount++;
       }
     }
@@ -129,14 +148,14 @@ async function handler(data: { groups?: Array<{ description: string; ukeys: stri
     // 如果没有普通组件，直接处理必需组件集
     const requiredMap = new Map<string, string>();
     groups.forEach(g => {
-      if (requiredComponentSetDescriptions.includes(g.description) && Array.isArray(g.ukeys) && g.ukeys[0]) {
+      if (REQUIRED_COMPONENT_SET_DESCRIPTIONS.has(g.description) && Array.isArray(g.ukeys) && g.ukeys[0]) {
         requiredMap.set(g.description, String(g.ukeys[0]));
       }
     });
 
     let setX = viewportCenter.x;
     const defaultSetY = viewportCenter.y - 360;
-    for (const desc of requiredOrder) {
+    for (const desc of REQUIRED_COMPONENT_SET_ORDER) {
       const ukey = requiredMap.get(desc);
       if (!ukey) continue;
       try {
@@ -145,10 +164,12 @@ async function handler(data: { groups?: Array<{ description: string; ukeys: stri
           successCount++;
           if (typeof result.endX === 'number') setX = result.endX;
         } else {
+          // 记录组件集导入失败
+          failedUkeys.set(ukey, result?.error || '组件集导入失败');
           failCount++;
         }
-      } catch (e) {
-        console.error(`导入组件集失败 (${desc}):`, e);
+      } catch (e: any) {
+        failedUkeys.set(ukey, parseErrorReason(e));
         failCount++;
       }
     }
@@ -156,6 +177,13 @@ async function handler(data: { groups?: Array<{ description: string; ukeys: stri
     if (failCount > 0) {
       mg.notify(`导入失败，请检查组件是否在团队库中`, { timeout: 3000 });
     }
+    
+    // 发送导入完成消息到 UI 端
+    sendMsgToUI(MessageType.IMPORT_COMPONENT_COMPLETE, {
+      success: failCount === 0,
+      successCount,
+      failCount,
+    });
     return;
   }
 
@@ -170,33 +198,37 @@ async function handler(data: { groups?: Array<{ description: string; ukeys: stri
     });
   });
 
-  const firstNormalComponentPos = processImportedInstances(descriptionGroups, currentPage, viewportCenter, skipConvert);
+  const processResult = processImportedInstances(descriptionGroups, currentPage, viewportCenter, skipConvert);
 
   // 4) 根据首个普通组件的位置，计算必需组件集的位置
   let requiredSetX = viewportCenter.x; // 默认值
   let requiredSetY = viewportCenter.y - 360; // 默认值
-  if (firstNormalComponentPos !== null && typeof firstNormalComponentPos === 'object') {
+  let convertedComponentNames: Set<string> | null = null;
+  
+  if (processResult !== null && typeof processResult === 'object' && 'x' in processResult && 'y' in processResult) {
     // 必需组件集的首个组件放在首个普通组件的正上方，间距 3000
     const componentSetSpacing = 3000;
-    requiredSetX = firstNormalComponentPos.x;
-    requiredSetY = firstNormalComponentPos.y - componentSetSpacing;
-  } else {
-    console.warn('未获取到首个普通组件位置，使用默认值');
+    requiredSetX = processResult.x;
+    requiredSetY = processResult.y - componentSetSpacing;
+    // 如果是普通导入，获取已转换组件的名称列表
+    if ('convertedComponentNames' in processResult && processResult.convertedComponentNames instanceof Set) {
+      convertedComponentNames = processResult.convertedComponentNames;
+    }
   }
 
   // 5) 按固定顺序处理 4 个组件集（横向一排：背景、IP、LOGO、主题；每组先横后竖）
   const requiredMap = new Map<string, string>();
-  groups.forEach(g => {
-    if (requiredComponentSetDescriptions.includes(g.description) && Array.isArray(g.ukeys) && g.ukeys[0]) {
-      requiredMap.set(g.description, String(g.ukeys[0]));
-    }
-  });
+    groups.forEach(g => {
+      if (REQUIRED_COMPONENT_SET_DESCRIPTIONS.has(g.description) && Array.isArray(g.ukeys) && g.ukeys[0]) {
+        requiredMap.set(g.description, String(g.ukeys[0]));
+      }
+    });
 
   // 给组件集一条单独的横向排布行，首个组件放在首个普通组件的正上方
   // 同时收集所有必需组件集的组件（用于替换普通组件内部的实例）
   const requiredComponentsMap = new Map<string, any>();
   let setX = requiredSetX;
-  for (const desc of requiredOrder) {
+  for (const desc of REQUIRED_COMPONENT_SET_ORDER) {
     const ukey = requiredMap.get(desc);
     if (!ukey) continue;
     try {
@@ -211,27 +243,49 @@ async function handler(data: { groups?: Array<{ description: string; ukeys: stri
           });
         }
       } else {
+        // 记录组件集导入失败
+        failedUkeys.set(ukey, result?.error || '组件集导入失败');
         failCount++;
       }
-    } catch (e) {
-      console.error(`导入组件集失败 (${desc}):`, e);
+    } catch (e: any) {
+      failedUkeys.set(ukey, parseErrorReason(e));
       failCount++;
     }
   }
 
-  // 6) 如果商店图导入（skipConvert: true），替换普通组件内部的实例为必需组件集的组件实例
-  if (skipConvert && requiredComponentsMap.size > 0) {
-    // 遍历当前页面的所有节点，查找普通组件（解绑后的 Frame 节点），替换其内部的实例
+  // 6) 替换普通组件内部的实例为必需组件集的组件实例
+  if (requiredComponentsMap.size > 0) {
     try {
       const pageChildren = currentPage.children || [];
       for (const child of pageChildren) {
-        if (child && child.type === 'FRAME') {
-          // 检查是否是普通组件（通过名称匹配）
-          if (normalComponentNames.has(child.name)) {
+        if (!child) continue;
+        
+        if (skipConvert) {
+          // 商店图导入：查找 Frame 节点（解绑后的普通组件）
+          if (child.type === 'FRAME' && normalComponentNames.has(child.name)) {
             try {
-              replaceInternalInstances(child, requiredComponentsMap);
-            } catch (e) {
-              console.error(`替换普通组件内部实例失败 (${child.name}):`, e);
+              if (!child.removed) {
+                replaceInternalInstances(child, requiredComponentsMap);
+              }
+            } catch (e: any) {
+              // 节点不存在错误是预期的（替换过程中节点会被删除），静默处理
+              if (e?.message && !e.message.includes('does not exist')) {
+                console.error(`替换普通组件内部实例失败 (${child.name}):`, e);
+              }
+            }
+          }
+        } else {
+          // 组件库导入：查找 Component 节点（已转换的普通组件）
+          if (child.type === 'COMPONENT' && convertedComponentNames && convertedComponentNames.has(child.name)) {
+            try {
+              if (!child.removed) {
+                replaceInternalInstances(child, requiredComponentsMap);
+              }
+            } catch (e: any) {
+              // 节点不存在错误是预期的（替换过程中节点会被删除），静默处理
+              if (e?.message && !e.message.includes('does not exist')) {
+                console.error(`替换普通组件内部实例失败 (${child.name}):`, e);
+              }
             }
           }
         }
@@ -239,15 +293,26 @@ async function handler(data: { groups?: Array<{ description: string; ukeys: stri
     } catch (e) {
       console.error('替换普通组件内部实例时出错:', e);
     }
+    
+    // 等待一段时间，确保所有替换操作的副作用（如节点删除、状态更新等）已完成
+    await new Promise(resolve => setTimeout(resolve, 500));
   }
 
   // 7. 完成处理（已在排列阶段实现同行顶对齐，无需额外操作）
 
-  if (failCount > 0) {
+  // 汇总并输出错误信息
+  if (failCount > 0 || failedUkeys.size > 0) {
     mg.notify(`成功导入 ${successCount} 个组件，失败 ${failCount} 个`, { timeout: 3000 });
   } else {
     mg.notify(`成功导入并处理 ${successCount} 个组件`, { timeout: 2000 });
   }
+
+  // 发送导入完成消息到 UI 端
+  sendMsgToUI(MessageType.IMPORT_COMPONENT_COMPLETE, {
+    success: true,
+    successCount,
+    failCount,
+  });
 }
 
 export default {

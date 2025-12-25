@@ -61,8 +61,8 @@ async function handler() {
     sendMsgToUI(MessageType.GET_COMPONENT_LIBRARY, { components: allComponents });
     
   } catch (error: any) {
-    console.error('获取组件列表失败 (Exception):', error);
-    sendMsgToUI(MessageType.SHOW_NOTIFY, { message: '获取组件列表失败: ' + (error.message || '未知错误'), timeout: 3000 });
+    const errorMsg = error?.message || '未知错误';
+    sendMsgToUI(MessageType.SHOW_NOTIFY, { message: `获取组件列表失败: ${errorMsg}`, timeout: 3000 });
     sendMsgToUI(MessageType.GET_COMPONENT_LIBRARY, { components: [] }); // 确保发送空列表以关闭 loading
   }
 }

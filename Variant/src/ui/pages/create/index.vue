@@ -45,8 +45,9 @@
 
     <!-- 文本输入区域（编辑态） -->
     <div :class="$style.textInputArea" v-show="!isPreview">
-      <textarea
+      <TabTextarea
         v-model="dataText"
+        type="native"
         :class="$style.textarea"
         placeholder="*name *w *h *s *type *safeArea&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;
 📋复制表格(含表头)
@@ -113,6 +114,7 @@ import { sendMsgToPlugin, addMessageListener } from '../../../messages';
 import { MessageType } from '../../../messages';
 import { getExampleData } from './exampleData';
 import { handleExcelUpload as handleExcelFileUpload, handleJsonFileUpload, handleImageUpload } from '../../utils/fileUploadHandler';
+import TabTextarea from '../../components/TabTextarea.vue';
 
 // 数据定义
 const dataText = ref('');
@@ -139,6 +141,7 @@ onMounted(() => {
     handleGetFrame(data);
   });
 });
+
 /**
  * 处理确认按钮点击
  */
@@ -497,27 +500,7 @@ function createObjects() {
 }
 
 .textarea {
-  width: 100%;
   height: 500px;
-  padding: 8px;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  font-family: 'Courier New', monospace;
-  font-size: 12px;
-  resize: none;
-  overflow-y: auto;
-  
-  &:focus {
-    outline: none;
-    border-color: var(--button-primary-bg);
-  }
-  
-  &::placeholder {
-    color: var(--text-secondary);
-    opacity: 0.5;
-  }
 }
 
 .createBtn {

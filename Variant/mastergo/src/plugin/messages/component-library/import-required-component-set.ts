@@ -29,7 +29,19 @@ export async function importRequiredComponentSet(
       return { success: false, componentSet: null, error: 'importComponentSetByKeyAsync API 不存在' };
     }
 
-    const componentSetNode = await mg.importComponentSetByKeyAsync(String(ukey));
+    let componentSetNode: any;
+    try {
+      componentSetNode = await mg.importComponentSetByKeyAsync(String(ukey));
+    } catch (error: any) {
+      // 捕获导入错误，包括可能的 2022-return:5 等内部错误
+      const errorMsg = error?.message || String(error) || '未知错误';
+      return { 
+        success: false, 
+        componentSet: null, 
+        error: `导入组件集失败：${errorMsg}。请检查组件是否在团队库中，或联系管理员。` 
+      };
+    }
+    
     if (!componentSetNode) {
       return { success: false, componentSet: null, error: `导入组件集失败（返回空）：${description}` };
     }
@@ -93,6 +105,27 @@ export async function importRequiredComponentSet(
         component.x = x;
         component.y = y;
 
+        // 对于 IP、LOGO、主题 组件，设置尺寸适应内容
+        const shouldHugContents = valueName === 'IP_横' || valueName === 'IP_竖' ||
+                                  valueName === 'LOGO_横' || valueName === 'LOGO_竖' ||
+                                  valueName === '主题_横' || valueName === '主题_竖';
+        if (shouldHugContents) {
+          try {
+            // 根据 MasterGo API 文档：
+            // mainAxisSizingMode: 'FIXED' | 'AUTO' - 主轴方向尺寸模式
+            // crossAxisSizingMode: 'FIXED' | 'AUTO' - 交叉轴方向尺寸模式
+            // 'AUTO' 表示自动长度（适应内容），'FIXED' 表示固定长度
+            if ('mainAxisSizingMode' in component) {
+              (component as any).mainAxisSizingMode = 'AUTO';
+            }
+            if ('crossAxisSizingMode' in component) {
+              (component as any).crossAxisSizingMode = 'AUTO';
+            }
+          } catch (e) {
+            // 如果设置失败，静默处理
+          }
+        }
+
         // 收集组件（用于后续替换普通组件内部的实例）
         components.set(valueName, component);
 
@@ -103,7 +136,7 @@ export async function importRequiredComponentSet(
         createdCount += 1;
         x += (Number(component.width) || 0) + gap;
       } catch (e) {
-        console.error(`创建组件集子组件实例失败 (${description}):`, e);
+        // 静默处理单个组件创建失败，继续处理其他组件
       }
     }
 
@@ -116,9 +149,9 @@ export async function importRequiredComponentSet(
     }
 
     return { success: true, componentSet: componentSetNode, endX: x, maxHeight, components };
-  } catch (error) {
-    console.error(`导入组件集失败 (${description}):`, error);
-    return { success: false, componentSet: null, error: `导入组件集失败: ${error}` };
+  } catch (error: any) {
+    const errorMsg = error?.message || String(error) || '未知错误';
+    return { success: false, componentSet: null, error: `导入组件集失败: ${errorMsg}` };
   }
 }
 

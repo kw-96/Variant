@@ -45,9 +45,8 @@
 
       <!-- 固定文本标签页内容 -->
       <div v-if="activeTab === 'fixed'" :class="$style.tabContent">
-        <van-field
+        <TabInput
           v-model="fixedText"
-          :class="$style.textInput"
           placeholder="请输入要插入的文本"
         />
       </div>
@@ -75,9 +74,8 @@
 
           <div :class="$style.inputWrapper">
             <label :class="$style.label">开始序号</label>
-            <van-field
+            <TabInput
               v-model="startNumberInput"
-              :class="$style.startNumberInput"
               :placeholder="getDefaultStartNumber()"
               @input="handleStartNumberInput"
               @blur="validateStartNumber"
@@ -106,6 +104,7 @@
 <script lang="ts" setup>
 import { ref, computed } from 'vue';
 import { MessageType, sendMsgToPlugin } from '../../../messages';
+import TabInput from '../../components/TabInput.vue';
 
 // 定义事件
 const emit = defineEmits<{
@@ -527,17 +526,6 @@ function handleRename() {
   line-height: 1.5;
 }
 
-.textInput {
-  width: 100%;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background: var(--bg-primary);
-  transition: border-color 0.2s;
-  
-  &:focus-within {
-    border-color: var(--button-primary-bg);
-  }
-}
 
 .autoNumberSection {
   display: flex;
@@ -575,17 +563,6 @@ function handleRename() {
   }
 }
 
-.startNumberInput {
-  width: 100%;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background: var(--bg-primary);
-  transition: border-color 0.2s;
-  
-  &:focus-within {
-    border-color: var(--button-primary-bg);
-  }
-}
 
 .errorText {
   font-size: 12px;

@@ -14,21 +14,14 @@ export function isPreviewNode(node: any): boolean {
 }
 
 /**
- * 判断父节点是否使用自动布局（兼容 MasterGo 的 flexMode 和 Figma 风格的 layoutMode）
+ * 判断父节点是否使用自动布局
  * @param parent 父节点
  * @returns 是否使用自动布局
  */
 export function hasAutoLayout(parent: any): boolean {
   if (!parent) return false;
-  // MasterGo 风格：flexMode 存在且不为空/无效值
-  if (parent.flexMode && typeof parent.flexMode === 'string' && parent.flexMode !== 'NONE') {
-    return true;
-  }
-  // Figma 风格兼容：layoutMode 存在且不为 NONE
-  if (parent.layoutMode && typeof parent.layoutMode === 'string' && parent.layoutMode !== 'NONE') {
-    return true;
-  }
-  return false;
+  // flexMode 存在且不为空/无效值
+  return parent.flexMode && typeof parent.flexMode === 'string' && parent.flexMode !== 'NONE';
 }
 
 /**
@@ -74,12 +67,87 @@ export function copyFrameProperties(source: any, target: any) {
 }
 
 /**
+ * 查找最左侧且最上方的节点（首个节点）
+ * @param nodes 节点数组
+ * @returns 首个节点的位置 { x, y }，如果没有节点则返回 null
+ */
+export function findFirstNodePosition(nodes: any[]): { x: number; y: number } | null {
+  if (!nodes || nodes.length === 0) return null;
+  
+  let firstNode = nodes[0];
+  let firstX = typeof firstNode?.x === 'number' ? firstNode.x : 0;
+  let firstY = typeof firstNode?.y === 'number' ? firstNode.y : 0;
+  
+  for (const node of nodes) {
+    if (!node) continue;
+    const x = typeof node.x === 'number' ? node.x : 0;
+    const y = typeof node.y === 'number' ? node.y : 0;
+    // 优先选择 Y 更小的（更上方），如果 Y 相同则选择 X 更小的（更左侧）
+    if (y < firstY || (y === firstY && x < firstX)) {
+      firstNode = node;
+      firstX = x;
+      firstY = y;
+    }
+  }
+  
+  return { x: firstX, y: firstY };
+}
+
+/**
+ * 解析错误信息，返回友好的错误原因
+ * @param error 错误对象或错误消息
+ * @returns 错误原因字符串
+ */
+export function parseErrorReason(error: any): string {
+  const errorMsg = error?.message || String(error) || '未知错误';
+  
+  if (errorMsg.includes('2022') || errorMsg.includes('return')) {
+    return '组件不存在或权限不足';
+  } else if (errorMsg.includes('network') || errorMsg.includes('网络')) {
+    return '网络错误';
+  }
+  
+  return errorMsg;
+}
+
+/**
+ * 必需组件集描述列表（按固定顺序）
+ */
+export const REQUIRED_COMPONENT_SET_ORDER = ['背景', 'IP', 'LOGO', '主题'] as const;
+
+/**
+ * 必需组件集描述集合（用于快速查找）
+ */
+export const REQUIRED_COMPONENT_SET_DESCRIPTIONS = new Set(REQUIRED_COMPONENT_SET_ORDER);
+
+/**
  * 捕获节点的几何信息（位置、尺寸、旋转等）
  * @param node 要捕获信息的节点
  * @returns 包含几何信息的对象
  */
 export function captureNodeGeometry(node: any) {
   if (!node) return {};
+  
+  // 捕获约束对象（确保正确复制 horizontal 和 vertical 属性）
+  let constraints: any = undefined;
+  if (node.constraints) {
+    try {
+      // 约束对象结构：{ horizontal: ConstraintType, vertical: ConstraintType }
+      // 确保正确捕获 horizontal 和 vertical 属性
+      const horizontal = (node.constraints as any).horizontal;
+      const vertical = (node.constraints as any).vertical;
+      if (horizontal !== undefined || vertical !== undefined) {
+        constraints = {
+          horizontal: horizontal,
+          vertical: vertical,
+        };
+      }
+    } catch {
+      // 如果捕获失败，尝试直接复制
+      constraints = node.constraints;
+    }
+  }
+  
   return {
     x: node.x,
     y: node.y,
@@ -88,7 +156,7 @@ export function captureNodeGeometry(node: any) {
     rotation: node.rotation,
     layoutAlign: (node as any).layoutAlign,
     layoutGrow: (node as any).layoutGrow,
-    constraints: node.constraints,
+    constraints: constraints,
   };
 }
 
@@ -132,7 +200,7 @@ export function applyNodeGeometry(target: any, geometry: any, parent: any) {
     target.rotation = rotation;
   }
 
-  // 根据父节点的布局模式应用位置或布局属性（统一判断：兼容 flexMode 和 layoutMode）
+  // 根据父节点的布局模式应用位置或布局属性
   if (hasAutoLayout(parent)) {
     // 自动布局模式：应用布局属性
     if (layoutAlign !== undefined) {
@@ -156,10 +224,28 @@ export function applyNodeGeometry(target: any, geometry: any, parent: any) {
   }
 
   // 应用约束
+  // 约束对象结构：{ horizontal: ConstraintType, vertical: ConstraintType }
+  // ConstraintType: 'START' | 'END' | 'STARTANDEND' | 'CENTER' | 'SCALE'
   if (constraints) {
     try {
-      target.constraints = constraints;
-    } catch {}
+      // 确保约束对象包含 horizontal 和 vertical 属性
+      if (typeof constraints === 'object' && ('horizontal' in constraints || 'vertical' in constraints)) {
+        const constraintObj: any = {};
+        if ('horizontal' in constraints) {
+          constraintObj.horizontal = constraints.horizontal;
+        }
+        if ('vertical' in constraints) {
+          constraintObj.vertical = constraints.vertical;
+        }
+        target.constraints = constraintObj;
+      } else {
+        // 如果结构不符合预期，尝试直接赋值
+        target.constraints = constraints;
+      }
+    } catch (e) {
+      // 约束设置失败时，记录警告但不中断流程
+      console.warn(`应用约束失败 (${target?.name || '未命名'}):`, e);
+    }
   }
 }
 
@@ -172,7 +258,6 @@ function extractComponentNameFromVariant(instance: any): string | null {
   if (!instance || instance.type !== 'INSTANCE') return null;
 
   try {
-    // 获取变体属性
     const variantProperties = (instance as any).variantProperties;
     if (!Array.isArray(variantProperties) || variantProperties.length === 0) {
       return null;
@@ -182,24 +267,20 @@ function extractComponentNameFromVariant(instance: any): string | null {
     const variantValues: string[] = [];
     for (const variant of variantProperties) {
       if (variant && typeof variant === 'object') {
-        // 获取变体的值（可能是 value、values 或 options）
         let value: any = null;
         if (variant.value !== undefined) {
           value = variant.value;
         } else if (Array.isArray(variant.values) && variant.values.length > 0) {
-          value = variant.values[0]; // 取第一个值
+          value = variant.values[0];
         } else if (Array.isArray(variant.options) && variant.options.length > 0) {
-          value = variant.options[0]; // 取第一个选项
+          value = variant.options[0];
         }
 
         if (value !== null && value !== undefined) {
           const strValue = String(value);
           // 如果值包含等号，取等号后的部分（例如 "属性=LOGO_横" -> "LOGO_横"）
-          if (strValue.includes('=')) {
-            variantValues.push(strValue.split('=').pop()?.trim() || strValue);
-          } else {
-            variantValues.push(strValue);
-          }
+          const extracted = strValue.includes('=') ? strValue.split('=').pop()?.trim() || strValue : strValue;
+          variantValues.push(extracted);
         }
       }
     }
@@ -209,15 +290,41 @@ function extractComponentNameFromVariant(instance: any): string | null {
       return variantValues[0];
     }
 
-    // 如果有多个值，尝试组合（例如 "LOGO_横"）
+    // 如果有多个值，尝试组合
     if (variantValues.length > 1) {
-      // 尝试找到包含描述性关键词的值（如包含"横"、"竖"等）
       const descriptiveValue = variantValues.find(v => v.includes('横') || v.includes('竖'));
+      const typeValue = variantValues.find(v => 
+        v.includes('LOGO') || v.includes('主题') || v.includes('背景') || v.includes('IP')
+      );
+      
+      // 如果找到了类型值和描述性值，组合它们
+      if (typeValue && descriptiveValue) {
+        return `${typeValue}_${descriptiveValue}`;
+      }
+      
+      // 如果只找到了描述性值，尝试与其他值组合
       if (descriptiveValue) {
+        const otherValue = variantValues.find(v => v !== descriptiveValue);
+        if (otherValue) {
+          const combination1 = `${otherValue}_${descriptiveValue}`;
+          const combination2 = `${descriptiveValue}_${otherValue}`;
+          // 优先返回类型值在前的组合
+          if (otherValue.includes('LOGO') || otherValue.includes('主题') || 
+              otherValue.includes('背景') || otherValue.includes('IP')) {
+            return combination1;
+          }
+          return combination2;
+        }
         return descriptiveValue;
       }
-      // 否则返回第一个值
-      return variantValues[0];
+      
+      // 如果只找到了类型值，返回它
+      if (typeValue) {
+        return typeValue;
+      }
+      
+      // 否则尝试组合所有值（用下划线连接）
+      return variantValues.join('_');
     }
 
     return null;
@@ -232,17 +339,79 @@ function extractComponentNameFromVariant(instance: any): string | null {
  * @param node 要处理的节点
  * @param componentMap 组件映射表（名称 -> 组件节点）
  */
+/**
+ * 检查节点是否仍然有效（未删除且有父节点）
+ */
+function isNodeValid(node: any): boolean {
+  if (!node) return false;
+  try {
+    return !node.removed && !!node.parent;
+  } catch {
+    return false;
+  }
+}
+
 export function replaceInternalInstances(node: any, componentMap: Map<string, any>) {
   if (!node) return;
 
   // 如果是容器类型，递归处理子节点
   if (node.type === 'FRAME' || node.type === 'GROUP' || node.type === 'COMPONENT_SET' || node.type === 'COMPONENT') {
-    const children = node.children || [];
-    // 使用副本遍历，因为替换操作会修改 children 数组
-    [...children].forEach(child => replaceInternalInstances(child, componentMap));
+    if (!isNodeValid(node)) return;
+    
+    // 获取children数组的快照，避免在遍历过程中children数组被修改
+    let children: any[];
+    try {
+      children = node.children || [];
+    } catch {
+      return;
+    }
+    
+    // 先收集所有需要处理的子节点，避免在遍历过程中节点被删除导致的问题
+    const childrenToProcess: Array<{ node: any; name: string }> = [];
+    for (const child of children) {
+      if (!child) continue;
+      
+      if (isNodeValid(child)) {
+        childrenToProcess.push({
+          node: child,
+          name: child.name || '未命名'
+        });
+      }
+    }
+    
+    // 遍历收集到的子节点进行处理
+    for (const item of childrenToProcess) {
+      let child: any;
+      try {
+        child = item.node;
+      } catch {
+        continue;
+      }
+      
+      // 再次检查节点是否仍然有效（可能在收集后被删除）
+      if (!isNodeValid(child)) {
+        continue;
+      }
+      
+      try {
+        replaceInternalInstances(child, componentMap);
+      } catch (e: any) {
+        // 节点不存在错误是预期的（替换过程中节点会被删除，说明替换成功），静默处理
+        // 只记录其他类型的错误
+        if (e?.message && !e.message.includes('does not exist')) {
+          console.error(`递归处理子节点失败 (${item.name}):`, e);
   } 
+        // 继续处理下一个节点，不因为单个节点失败而中断整个替换过程
+      }
+    }
+    
+    return; // 容器节点处理完子节点后返回，不再继续处理
+  }
+  
   // 如果是实例，检查是否需要替换
-  else if (node.type === 'INSTANCE') {
+  if (node.type === 'INSTANCE') {
+    if (!isNodeValid(node)) return;
+    
     let targetComponent: any = null;
     let matchedName: string | null = null;
 
@@ -253,29 +422,114 @@ export function replaceInternalInstances(node: any, componentMap: Map<string, an
     } else {
       // 如果名称不匹配，尝试通过变体属性匹配
       const variantComponentName = extractComponentNameFromVariant(node);
-      if (variantComponentName && componentMap.has(variantComponentName)) {
-        targetComponent = componentMap.get(variantComponentName);
-        matchedName = variantComponentName;
+      
+      if (variantComponentName) {
+        // 1. 直接匹配
+        if (componentMap.has(variantComponentName)) {
+          targetComponent = componentMap.get(variantComponentName);
+          matchedName = variantComponentName;
+        } else {
+          // 2. 获取所有变体值，用于更精确的匹配
+          const variantProperties = (node as any).variantProperties;
+          const allVariantValues: string[] = [];
+          if (Array.isArray(variantProperties)) {
+            variantProperties.forEach((v: any) => {
+              let val: any = null;
+              if (v?.value !== undefined) val = v.value;
+              else if (Array.isArray(v?.values) && v.values.length > 0) val = v.values[0];
+              else if (Array.isArray(v?.options) && v.options.length > 0) val = v.options[0];
+              if (val !== null && val !== undefined) {
+                const strVal = String(val);
+                const extracted = strVal.includes('=') ? strVal.split('=').pop()?.trim() : strVal;
+                if (extracted) allVariantValues.push(extracted);
+              }
+            });
+          }
+          
+          // 优先查找完全匹配的组件名称
+          let foundMatch = false;
+          for (const [componentName, component] of componentMap.entries()) {
+            // 检查组件名称是否包含所有变体值
+            const matchesAll = allVariantValues.length > 0 && 
+              allVariantValues.every((val: string) => componentName.includes(val));
+            
+            if (matchesAll) {
+              targetComponent = component;
+              matchedName = componentName;
+              foundMatch = true;
+              break;
+            }
+          }
+          
+          // 如果没有完全匹配，尝试模糊匹配
+          if (!foundMatch) {
+            for (const [componentName, component] of componentMap.entries()) {
+              if (componentName.includes(variantComponentName) || variantComponentName.includes(componentName)) {
+                targetComponent = component;
+                matchedName = componentName;
+                break;
+              }
+            }
+          }
+        }
       }
     }
 
     // 如果找到匹配的组件，进行替换
     if (targetComponent) {
       try {
-        // 记录原实例的几何信息（用于恢复位置和等比缩放目标尺寸）
-        const originalX = typeof node.x === 'number' ? node.x : null;
-        const originalY = typeof node.y === 'number' ? node.y : null;
+        if (!isNodeValid(node)) return;
+        
+        let parent: any;
+        try {
+          parent = node.parent;
+        } catch {
+          return;
+        }
+        
+        if (!parent) return;
+        
+        // 捕获原实例的完整几何信息（包括位置、尺寸、旋转、约束、布局属性等）
+        const originalGeometry = captureNodeGeometry(node);
         const originalWidth = typeof node.width === 'number' ? node.width : null;
         const originalHeight = typeof node.height === 'number' ? node.height : null;
 
-        const newInstance = targetComponent.createInstance();
-
+        let newInstance: any;
+        try {
+          newInstance = targetComponent.createInstance();
+        } catch (e) {
+          console.error(`创建新实例失败 (${node.name}):`, e);
+          return;
+        }
+        
+        if (!newInstance) {
+          console.error(`创建新实例返回空 (${node.name})`);
+          return;
+        }
+        
         // 在父节点中替换实例
-        const parent = node.parent;
-        if (parent) {
-          const index = parent.children.indexOf(node);
+        let index: number;
+        try {
+          index = parent.children.indexOf(node);
+        } catch {
+          return;
+        }
+        
+        if (index === -1) return;
+        
+        try {
           parent.insertChild(index, newInstance);
-          node.remove(); // 移除旧实例
+        } catch (e: any) {
+          // 插入失败才是真正的错误
+          console.error(`插入新实例失败 (${node.name}):`, e);
+          return;
+        }
+        
+        // 移除旧实例，如果节点不存在说明已经被删除（替换成功），这是正常的
+        try {
+          node.remove();
+        } catch {
+          // 节点不存在是预期的（替换成功），静默处理
         }
 
         // 使用官方 rescale 方法进行等比缩放（效果与手动缩放一致）
@@ -313,42 +567,56 @@ export function replaceInternalInstances(node: any, componentMap: Map<string, an
           }
         }
 
-        // 恢复位置
-        if (originalX !== null) {
-          try {
-            newInstance.x = originalX;
-          } catch {}
-        }
-        if (originalY !== null) {
-          try {
-            newInstance.y = originalY;
-          } catch {}
-        }
+        // 恢复所有原始属性（位置、旋转、约束、布局属性等）
+        // 注意：尺寸已在上面通过 rescale 或 resize 处理，这里只恢复其他属性
+        const geometryToRestore = { ...originalGeometry };
+        // 尺寸已在上面处理，避免重复设置
+        delete geometryToRestore.width;
+        delete geometryToRestore.height;
+        applyNodeGeometry(newInstance, geometryToRestore, parent);
 
         // 如果实例名称包含"背景"，将尺寸调整为父容器尺寸
         const isBackground = (matchedName && matchedName.includes('背景')) || 
                             (typeof node.name === 'string' && node.name.includes('背景'));
-        if (isBackground && parent) {
+        if (isBackground) {
           try {
-            const parentWidth = typeof parent.width === 'number' ? parent.width : null;
-            const parentHeight = typeof parent.height === 'number' ? parent.height : null;
-            
-            if (parentWidth && parentHeight) {
-              if (typeof (newInstance as any).resizeWithoutConstraints === 'function') {
-                (newInstance as any).resizeWithoutConstraints(parentWidth, parentHeight);
-              } else if (typeof (newInstance as any).resize === 'function') {
-                (newInstance as any).resize(parentWidth, parentHeight);
-              } else {
-                (newInstance as any).width = parentWidth;
-                (newInstance as any).height = parentHeight;
+            // 重新获取parent，因为node已经被删除
+            const currentParent = newInstance.parent;
+            if (currentParent) {
+              const parentWidth = typeof currentParent.width === 'number' ? currentParent.width : null;
+              const parentHeight = typeof currentParent.height === 'number' ? currentParent.height : null;
+              
+              if (parentWidth && parentHeight) {
+                try {
+                  if (typeof (newInstance as any).resizeWithoutConstraints === 'function') {
+                    (newInstance as any).resizeWithoutConstraints(parentWidth, parentHeight);
+                  } else if (typeof (newInstance as any).resize === 'function') {
+                    (newInstance as any).resize(parentWidth, parentHeight);
+                  } else {
+                    (newInstance as any).width = parentWidth;
+                    (newInstance as any).height = parentHeight;
+                  }
+                } catch (e: any) {
+                  // 新实例不存在才是错误（说明替换失败），节点不存在错误是预期的
+                  if (e?.message && !e.message.includes('does not exist')) {
+                    console.error('调整背景实例尺寸失败:', e);
+                  }
+                }
               }
             }
-          } catch {
-            // 忽略背景尺寸调整失败
+          } catch (e: any) {
+            // 新实例不存在才是错误（说明替换失败），节点不存在错误是预期的
+            if (e?.message && !e.message.includes('does not exist')) {
+              console.error('调整背景实例尺寸时出错:', e);
+            }
           }
         }
-      } catch (e) {
-        console.error(`替换实例失败 (${node.name} -> ${matchedName}):`, e);
+      } catch (e: any) {
+        // 节点不存在错误是预期的（替换过程中节点会被删除，说明替换成功），静默处理
+        // 只有在替换操作本身失败（不是节点不存在）才是真正的错误
+        if (e?.message && !e.message.includes('does not exist')) {
+          console.error(`替换实例失败 (${node.name} -> ${matchedName}):`, e);
+        }
       }
     }
   }

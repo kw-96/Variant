@@ -25,9 +25,11 @@
       <van-icon name="arrow-down" />
     </div>
 
-    <textarea
+    <TabTextarea
       v-model="dataText"
+      type="native"
       :class="$style.textarea"
+      min-height="47%"
       placeholder="*name *w *h *s *type&#10;&#10;&#10;&#10;&#10;&#10;&#10;
 📋复制表格(含表头)
 👆双击空白处可查看示例
@@ -53,6 +55,7 @@
 import { ref, computed } from 'vue';
 import { MessageType, sendMsgToPlugin } from '../../../messages';
 import { getExampleData } from '../create/exampleData';
+import TabTextarea from '../../components/TabTextarea.vue';
 
 // 数据定义
 const dataText = ref('');
@@ -192,25 +195,7 @@ function textToList(text: string) {
 }
 
 .textarea {
-  width: 100%;
-  min-height: 47%;
-  padding: 8px;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  font-family: 'Courier New', monospace;
-  font-size: 12px;
   resize: vertical;
-  overflow-y: auto;
-  
-  &:focus {
-    outline: none;
-    border-color: var(--button-primary-bg);
-  }
-  
-  &::placeholder {
-    color: var(--text-secondary);
-    opacity: 0.5;
-  }
 }
 
 .generateButton {
