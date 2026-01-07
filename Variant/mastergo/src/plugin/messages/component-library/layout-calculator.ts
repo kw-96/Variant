@@ -77,20 +77,86 @@ export function arrangeComponentLayout(
   viewportCenter: { x: number; y: number },
   config: LayoutConfig = DEFAULT_LAYOUT_CONFIG,
 ): void {
+  // 预处理：将超过5个组件的组拆分成多个子组
+  interface ProcessedGroupItem {
+    group: DescriptionGroup;
+    size: SizeInfo;
+    isFromLargeGroup: boolean; // 标记是否来自超过5个组件的组
+  }
+  
+  const processedGroups: ProcessedGroupItem[] = [];
+  const maxInstancesPerSubGroup = 5;
+  
+  for (let i = 0; i < descriptionGroups.length; i++) {
+    const group = descriptionGroups[i];
+    const size = groupSizes[i];
+    
+    // 如果当前组内的组件数量超过5个，拆分成多个子组
+    if (group.instances.length > maxInstancesPerSubGroup) {
+      // 将组件按每5个一组拆分
+      for (let j = 0; j < group.instances.length; j += maxInstancesPerSubGroup) {
+        const subInstances = group.instances.slice(j, j + maxInstancesPerSubGroup);
+        const subGroup: DescriptionGroup = {
+          description: group.description,
+          instances: subInstances
+        };
+        
+        // 计算子组的尺寸
+        let subGroupWidth = 0;
+        let subGroupHeight = 0;
+        subInstances.forEach((inst, index) => {
+          subGroupWidth += inst.width;
+          if (index < subInstances.length - 1) {
+            subGroupWidth += config.instanceSpacing;
+          }
+          subGroupHeight = Math.max(subGroupHeight, inst.height);
+        });
+        
+        const subSize: SizeInfo = {
+          width: subGroupWidth,
+          height: subGroupHeight
+        };
+        
+        processedGroups.push({ 
+          group: subGroup, 
+          size: subSize,
+          isFromLargeGroup: true // 标记为来自大组
+        });
+      }
+    } else {
+      processedGroups.push({ 
+        group, 
+        size,
+        isFromLargeGroup: false
+      });
+    }
+  }
+  
   // 按行分组
   const rows: Array<Array<{ group: DescriptionGroup; size: SizeInfo }>> = [];
   let currentRowGroups: Array<{ group: DescriptionGroup; size: SizeInfo }> = [];
 
-  for (let i = 0; i < descriptionGroups.length; i++) {
-    const group = descriptionGroups[i];
-    const size = groupSizes[i];
+  for (let i = 0; i < processedGroups.length; i++) {
+    const item = processedGroups[i];
+    
+    // 如果这个组是从超过5个组件的组拆分出来的，让它单独占一行
+    if (item.isFromLargeGroup) {
+      // 如果当前行有内容，先保存当前行
+      if (currentRowGroups.length > 0) {
+        rows.push([...currentRowGroups]);
+        currentRowGroups = [];
+      }
+      // 让这个子组单独占一行
+      rows.push([{ group: item.group, size: item.size }]);
+      continue;
+    }
 
     if (currentRowGroups.length >= config.maxGroupsPerRow) {
       rows.push([...currentRowGroups]);
       currentRowGroups = [];
     }
 
-    currentRowGroups.push({ group, size });
+    currentRowGroups.push({ group: item.group, size: item.size });
   }
 
   // 添加最后一行
