@@ -33,6 +33,113 @@ function safeNodeFileName(name: string): string {
 }
 
 /**
+ * 通过文件头（magic number）检测图片实际类型
+ * @param data 图片数据的 Uint8Array
+ * @returns 检测到的类型：'png' | 'jpg' | 'webp' | null
+ */
+function detectImageTypeByMagicNumber(data: Uint8Array): 'png' | 'jpg' | 'webp' | null {
+  if (!data || data.length < 8) return null;
+  
+  // PNG: 89 50 4E 47 0D 0A 1A 0A
+  if (data[0] === 0x89 && data[1] === 0x50 && data[2] === 0x4E && data[3] === 0x47 &&
+      data[4] === 0x0D && data[5] === 0x0A && data[6] === 0x1A && data[7] === 0x0A) {
+    return 'png';
+  }
+  
+  // JPEG: FF D8 FF
+  if (data[0] === 0xFF && data[1] === 0xD8 && data[2] === 0xFF) {
+    return 'jpg';
+  }
+  
+  // WebP: RIFF (52 49 46 46) ... WEBP (57 45 42 50)
+  if (data.length >= 12 &&
+      data[0] === 0x52 && data[1] === 0x49 && data[2] === 0x46 && data[3] === 0x46 &&
+      data[8] === 0x57 && data[9] === 0x45 && data[10] === 0x42 && data[11] === 0x50) {
+    return 'webp';
+  }
+  
+  return null;
+}
+
+/**
+ * 将图片数据转换为指定格式
+ * @param data 原始图片数据
+ * @param targetType 目标格式：'jpg' | 'jpeg' | 'png' | 'webp'
+ * @returns 转换后的数据
+ */
+async function convertImageFormat(data: Uint8Array, targetType: 'jpg' | 'jpeg' | 'png' | 'webp'): Promise<Uint8Array> {
+  const url = u8aToObjectUrl(data, 'png'); // 原始数据可能是PNG，用于解码
+  try {
+    const img = await loadImage(url);
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('canvas context 获取失败');
+    ctx.drawImage(img, 0, 0);
+    
+    // 根据目标格式设置MIME类型和质量
+    const normalizedType = targetType.toLowerCase() === 'jpeg' ? 'jpg' : targetType.toLowerCase();
+    const mime = normalizedType === 'webp' ? 'image/webp' : 
+                 (normalizedType === 'jpg' ? 'image/jpeg' : 'image/png');
+    const quality = normalizedType === 'png' ? undefined : 0.92; // PNG不支持质量参数
+    
+    const blob = await canvasToBlob(canvas, mime, quality);
+    const arrayBuf = await blob.arrayBuffer();
+    return new Uint8Array(arrayBuf);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+/**
+ * 确保文件数据与期望格式匹配，如果不匹配则转换格式
+ * @param data 文件数据
+ * @param expectedType 期望的类型（jpg/jpeg/png/webp）
+ * @returns Promise<{ data: Uint8Array; type: string }> 转换后的数据和类型（保持原始类型名称，如jpeg保持为jpeg）
+ */
+async function ensureCorrectFormat(data: Uint8Array, expectedType: string): Promise<{ data: Uint8Array; type: string }> {
+  const detectedType = detectImageTypeByMagicNumber(data);
+  const lowerExpected = expectedType.toLowerCase();
+  // 标准化类型用于比较（jpeg -> jpg），但保留原始类型名称用于返回
+  const normalizedExpected = lowerExpected === 'jpeg' ? 'jpg' : lowerExpected;
+  const originalType = lowerExpected; // 保留原始类型名称（jpeg保持为jpeg，jpg保持为jpg）
+  
+  // 如果无法检测类型，假设数据正确，但仍需要确保格式正确
+  if (!detectedType) {
+    console.warn(`[文件类型验证] 无法检测文件类型，将转换为期望格式: ${originalType}`);
+    try {
+      const convertedData = await convertImageFormat(data, originalType as 'jpg' | 'jpeg' | 'png' | 'webp');
+      return { data: convertedData, type: originalType };
+    } catch (e) {
+      console.error(`[文件类型验证] 格式转换失败:`, e);
+      return { data, type: originalType };
+    }
+  }
+  
+  // 如果格式匹配，直接返回（jpeg和jpg都视为匹配）
+  if (detectedType === normalizedExpected || 
+      (normalizedExpected === 'jpg' && detectedType === 'jpg') ||
+      (lowerExpected === 'jpeg' && detectedType === 'jpg')) {
+    return { data, type: originalType };
+  }
+  
+  // 格式不匹配，需要转换
+  console.warn(`[文件类型验证] 文件类型不匹配！期望: ${originalType}, 实际: ${detectedType}，正在转换格式...`);
+  
+  try {
+    const convertedData = await convertImageFormat(data, originalType as 'jpg' | 'jpeg' | 'png' | 'webp');
+    console.log(`[文件类型验证] 格式转换成功: ${detectedType} -> ${originalType}`);
+    return { data: convertedData, type: originalType };
+  } catch (e) {
+    console.error(`[文件类型验证] 格式转换失败:`, e);
+    // 转换失败，使用原始数据但警告
+    console.warn(`[文件类型验证] 格式转换失败，使用原始数据（可能无法通过后台验证）`);
+    return { data, type: originalType };
+  }
+}
+
+/**
  * 将 Uint8Array 转为 Blob URL
  */
 function u8aToObjectUrl(u8a: Uint8Array, type: string): string {
@@ -321,16 +428,32 @@ export async function exportHandler(
       }
     }
 
-    const nodeFile = `${safeNodeFileName(item.name)}.${item.type || 'png'}`;
-    files.push({ name: nodeFile, data: outData });
+    // 确保文件数据格式与期望格式匹配（如果格式不匹配，会进行格式转换）
+    const { data: finalData, type: finalType } = await ensureCorrectFormat(outData, item.type || 'png');
+    const nodeFile = `${safeNodeFileName(item.name)}.${finalType}`;
+    files.push({ name: nodeFile, data: finalData });
   }
+
+  // 获取文件MIME类型的辅助函数
+  const getMimeType = (fileName: string): string => {
+    const lowerName = fileName.toLowerCase();
+    if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg')) {
+      return 'image/jpeg';
+    } else if (lowerName.endsWith('.webp')) {
+      return 'image/webp';
+    } else if (lowerName.endsWith('.png')) {
+      return 'image/png';
+    }
+    // 默认返回PNG
+    return 'image/png';
+  };
 
   if (files.length === 1) {
     // 单个文件：直接保存，不打包
     const saveAs = await loadFileSaver();
     if (!saveAs) throw new Error('无法加载保存依赖（FileSaver）');
     const file = files[0];
-    const mime = (file.name.endsWith('.jpg') || file.name.endsWith('.jpeg')) ? 'image/jpeg' : (file.name.endsWith('.webp') ? 'image/webp' : 'image/png');
+    const mime = getMimeType(file.name);
     const blob = new Blob([file.data], { type: mime });
     (window as any).saveAs(blob, file.name);
   } else {
@@ -338,7 +461,7 @@ export async function exportHandler(
     const toZip = files.map(f => ({
       name: f.name,
       data: f.data,
-      type: (f.name.endsWith('.jpg') || f.name.endsWith('.jpeg')) ? 'image/jpeg' : (f.name.endsWith('.webp') ? 'image/webp' : 'image/png')
+      type: getMimeType(f.name)
     }));
     // 压缩包名：直接使用 PageNode 的 name
     const packBase = currentPageName ? safeNodeFileName(currentPageName) : 'export';
