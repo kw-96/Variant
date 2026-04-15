@@ -37,16 +37,22 @@ export function convertFrameToComponent(
     const targetWidth = frameNode.width;
     const targetHeight = frameNode.height;
 
+    // 记录原容器的父节点，以保持层级关系
+    const originalParent = frameNode.parent;
+
     // 创建新组件
     const newComponent = mg.createComponent();
     newComponent.name = componentName;
 
-    // 添加到页面
-    currentPage.appendChild(newComponent);
+    // 将新组件添加到原父节点，保持层级关系
+    // 如果原父节点存在且不是页面，则添加到原父节点；否则添加到页面
+    // 注意：解绑后的节点（detached）父节点通常是页面或 null，会正确添加到页面
+    const targetParent = originalParent && originalParent !== currentPage ? originalParent : currentPage;
+    targetParent.appendChild(newComponent);
 
-    // 设置初始位置
-    newComponent.x = frameNode.x;
-    newComponent.y = frameNode.y;
+    // 设置位置（相对于父节点的位置）
+    newComponent.x = originalX;
+    newComponent.y = originalY;
 
     // 复制Frame的视觉属性
     copyFrameProperties(frameNode, newComponent);
@@ -65,6 +71,7 @@ export function convertFrameToComponent(
     }
 
     // 确保位置正确（防止尺寸变化引起的锚点偏移）
+    // 使用相对于父节点的位置，保持层级关系
     if (typeof originalX === 'number' && !Number.isNaN(originalX)) {
       newComponent.x = originalX;
     }

@@ -25,6 +25,7 @@ export enum MessageType {
   // 工具箱相关
   ROUND_TO_INTEGER = 'roundToInteger',
   SIMPLE_CONSTRAINT = 'simpleConstraint',
+  BATCH_CONVERT_TO_COMPONENT = 'batchConvertToComponent',
   
   // 导出相关
   EXPORT_IMAGES = 'exportImages',
@@ -66,5 +67,9 @@ export enum MessageType {
 
   // 批量命名相关
   BATCH_RENAME = 'batchRename',
+
+  // 鉴权链路（仅权限检测）
+  GET_CURRENT_USER = 'GET_CURRENT_USER',
+  CURRENT_USER_RESULT = 'CURRENT_USER_RESULT'
 }
 

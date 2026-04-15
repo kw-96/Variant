@@ -1,5 +1,13 @@
 <template>
   <div :class="[$style.appContainer, { [$style.collapsed]: isCollapsed }]">
+    <template v-if="!hasEnteredWorkspace">
+      <PluginAccessDenied
+        :current-user-name="authSettings.currentUserName"
+        :current-user-id="authSettings.currentUserId"
+        :remote-unavailable="remoteAdminSettingsUnavailable"
+      />
+    </template>
+    <template v-else>
     <!-- 小窗口状态：只显示导航 -->
     <template v-if="isCollapsed">
       <div :class="$style.collapsedNav">
@@ -66,9 +74,11 @@
       </template>
       </div>
     </template>
+    </template>
     
     <!-- 全局弹窗 -->
     <van-popup
+      v-if="hasEnteredWorkspace"
       v-model:show="isVisible"
       position="bottom"
       :style="{
@@ -97,7 +107,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, watch, nextTick } from 'vue';
+import { ref, computed, watch, nextTick, onMounted } from 'vue';
 import { providePopup } from './hooks/usePopup';
 import Cut from './pages/cut/index.vue';
 import ButtonSizeExpansion from './pages/button-size-expansion/index.vue';
@@ -110,6 +120,8 @@ import Toolbox from './pages/toolbox/index.vue';
 import ComponentLibrary from './pages/component-library/index.vue';
 import { MessageType, addMessageListener, sendMsgToPlugin } from '../messages';
 import useGlobalStore from './store/useGlobalStore';
+import PluginAccessDenied from './auth/PluginAccessDenied.vue';
+import { usePluginAuth } from './auth/usePluginAuth';
 
 // 提供全局弹窗实例
 const { isVisible, component, props, listeners, hidePopup } =
@@ -120,6 +132,8 @@ type PopupProps = { title?: string; popupStyle?: Record<string, any> } & Record<
 const popupProps = props as unknown as PopupProps;
 
 const globalStore = useGlobalStore();
+const { settings: authSettings, remoteAdminSettingsUnavailable, loadSyncSettings } = usePluginAuth();
+const hasEnteredWorkspace = ref(false);
 
 // 主导航索引
 const activeNav = ref(0); // 默认选中资源位
@@ -240,7 +254,8 @@ function handleToggleSafeArea() {
   if (!hasSafeArea.value) {
     return;
   }
-  sendMsgToPlugin(MessageType.TOGGLE_SAFE_AREA);
+  // 从UI触发时，需要更新状态
+  sendMsgToPlugin(MessageType.TOGGLE_SAFE_AREA, { updateStatus: true });
 }
 
 // 监听安全区状态变化
@@ -251,6 +266,21 @@ addMessageListener(MessageType.SAFE_AREA_STATUS, (data: { visible: boolean; hasS
 
 // 初始化时检查安全区状态
 checkSafeAreaStatus();
+
+async function autoCheckAccess() {
+  try {
+    const settings = await loadSyncSettings();
+    hasEnteredWorkspace.value = !!settings.canAccessPlugin;
+  } catch (error: unknown) {
+    hasEnteredWorkspace.value = false;
+    const message = error instanceof Error ? error.message : '鉴权失败，请稍后重试。';
+    console.warn(message);
+  }
+}
+
+onMounted(() => {
+  autoCheckAccess();
+});
 
 // 处理小窗口状态下的导航点击
 function handleNavClickInCollapsed(navIdx: number) {

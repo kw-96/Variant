@@ -393,6 +393,7 @@ defineExpose({
   overflow: hidden;
 }
 
+
 .tagsContainer {
   flex: 1;
   overflow-y: auto;

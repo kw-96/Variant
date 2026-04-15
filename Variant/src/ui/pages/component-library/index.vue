@@ -267,7 +267,8 @@ function handleImport() {
   // 按描述分组收集组件 ukey
   const descriptionGroups = new Map<string, string[]>();
   
-  // 1. 收集用户选中的组件
+  // 1. 收集用户选中的组件，并记录涉及的团队库
+  const selectedLibraries = new Set<string>();
   groupedComponentList.value.forEach(group => {
     if (selectedGroupKeys.value.indexOf(group.key) !== -1) {
       const description = group.description || '未命名';
@@ -276,32 +277,45 @@ function handleImport() {
       }
       group.components.forEach(comp => {
         descriptionGroups.get(description)!.push(comp.ukey);
+        // 记录涉及的团队库
+        if (comp.category || comp.libraryName) {
+          selectedLibraries.add(comp.category || comp.libraryName);
+        }
       });
     }
   });
 
-  // 2. 自动添加"背景"、"LOGO"、"IP"、"主题"描述的组件集
-  // 每个描述只添加一套（选择第一个匹配的组件集）
+  // 2. 为每个涉及的团队库自动添加"背景"、"LOGO"、"IP"、"主题"描述的组件集
+  // 使用"库名::描述"格式，以便为不同团队库导入不同的必需组件集
+  // 【临时禁用】不自动导入必需组件集
+  /*
   const addedDescriptions = new Set(descriptionGroups.keys());
   const requiredDescriptions = ['背景', 'LOGO', 'IP', '主题'];
   
-  requiredDescriptions.forEach(requiredDesc => {
-    // 如果该描述还没有被添加，则查找并添加第一个匹配的组件集
-    if (!addedDescriptions.has(requiredDesc)) {
-      const matchedComponent = componentList.value.find(comp => 
-        comp.type === 'COMPONENT_SET' &&
-        comp.description === requiredDesc
-      );
+  selectedLibraries.forEach(libraryName => {
+    requiredDescriptions.forEach(requiredDesc => {
+      // 使用"库名::描述"格式作为key
+      const libraryDescriptionKey = `${libraryName}::${requiredDesc}`;
       
-      if (matchedComponent) {
-        if (!descriptionGroups.has(requiredDesc)) {
-          descriptionGroups.set(requiredDesc, []);
+      // 如果该描述还没有被添加，则查找该团队库对应的必需组件集
+      if (!addedDescriptions.has(libraryDescriptionKey)) {
+        const matchedComponent = componentList.value.find(comp => 
+          comp.type === 'COMPONENT_SET' &&
+          comp.description === requiredDesc &&
+          (comp.category === libraryName || comp.libraryName === libraryName)
+        );
+        
+        if (matchedComponent) {
+          if (!descriptionGroups.has(libraryDescriptionKey)) {
+            descriptionGroups.set(libraryDescriptionKey, []);
+          }
+          descriptionGroups.get(libraryDescriptionKey)!.push(matchedComponent.ukey);
+          addedDescriptions.add(libraryDescriptionKey);
         }
-        descriptionGroups.get(requiredDesc)!.push(matchedComponent.ukey);
-        addedDescriptions.add(requiredDesc);
       }
-    }
+    });
   });
+  */
 
   // 转换为数组格式：{ description, ukeys }
   const groups = Array.from(descriptionGroups.entries()).map(([description, ukeys]) => ({

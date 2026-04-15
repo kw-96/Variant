@@ -1,8 +1,19 @@
 {
   "name": "渠道美术设计工具",
-  "id": 173780091697040,
+  "id": 188847357639310,
   "main": "dist/main.js",
   "ui": "dist/index.html",
+  "menu":[
+    {"name":"打开面板","command":"open"},
+    {"separator": true},
+    {"name":"填充组件","command":"auto-add-component"},
+    {"name":"自动排列","command":"auto-layout"},
+    {"name":"整数像素","command":"round-to-integer"},
+    {"name":"简单约束","command":"simple-constraint"},
+    {"name":"批量组件","command":"batch-convert-to-component"},
+    {"separator": true},
+    {"name":"显隐安全区","command":"toggle-safe-area"}
+  ],
   "editor_type": [
     "canvas"
   ],

@@ -91,6 +91,11 @@ function handleSimpleConstraint() {
   sendMsgToPlugin(MessageType.SIMPLE_CONSTRAINT);
 }
 
+// 处理批量转为组件按钮点击
+function handleBatchConvertToComponent() {
+  sendMsgToPlugin(MessageType.BATCH_CONVERT_TO_COMPONENT);
+}
+
 const quickActions: ToolCard[] = [
   {
     key: 'auto-add-component',
@@ -111,6 +116,11 @@ const quickActions: ToolCard[] = [
     key: 'simple-constraint',
     label: '简单约束',
     handler: handleSimpleConstraint,
+  },
+  {
+    key: 'batch-convert-to-component',
+    label: '批量组件',
+    handler: handleBatchConvertToComponent,
   },
 ];
 

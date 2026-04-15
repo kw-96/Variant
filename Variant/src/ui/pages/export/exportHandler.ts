@@ -2,6 +2,8 @@
  * 导出处理器
  * 负责图片压缩、打包和保存功能
  */
+import imageCompression from 'browser-image-compression';
+import UPNG from 'upng-js';
 
 // 导出项接口定义
 export interface ExportItem {
@@ -20,6 +22,20 @@ export interface ExportItem {
   compressedSize?: number; // 压缩后的大小（k）
   compressFailed?: boolean; // 压缩未达到目标
 }
+
+export interface CompressStrategyOptions {
+  jpgMinQuality: number;
+  jpgQualityStep: number;
+  jpgMaxRounds: number;
+  pngMinColors: number;
+}
+
+const DEFAULT_COMPRESS_OPTIONS: CompressStrategyOptions = {
+  jpgMinQuality: 0.56,
+  jpgQualityStep: 0.06,
+  jpgMaxRounds: 7,
+  pngMinColors: 16
+};
 
 /**
  * 清理为可用文件名，但尽量保留原节点名称语义
@@ -178,122 +194,146 @@ function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: number)
 /**
  * 使用二分质量压缩到目标大小（仅 jpg/webp），返回 {u8a, sizeK, success}
  */
-async function compressJpegWebpToTarget(u8a: Uint8Array, outType: 'jpg' | 'jpeg' | 'webp', targetK: number): Promise<{ u8a: Uint8Array; sizeK: number; success: boolean; }> {
-  const url = u8aToObjectUrl(u8a, 'png'); // 原始可能为 PNG，这里仅作解码
-  try {
-    const img = await loadImage(url);
-    const canvas = document.createElement('canvas');
-    canvas.width = img.width;
-    canvas.height = img.height;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('canvas context 获取失败');
-    ctx.drawImage(img, 0, 0);
+async function compressJpegWebpToTarget(
+  u8a: Uint8Array,
+  outType: 'jpg' | 'jpeg' | 'webp',
+  targetK: number,
+  options: CompressStrategyOptions
+): Promise<{ u8a: Uint8Array; sizeK: number; success: boolean; }> {
+  const mime = outType === 'webp' ? 'image/webp' : 'image/jpeg';
+  const tolerance = Math.max(8, Math.floor(targetK * 0.02));
+  const qualitySteps = buildQualitySteps(options, targetK, Math.floor(u8a.length / 1000));
+  const baseBlob = new Blob([toSafeArrayBuffer(u8a)], { type: mime });
+  let bestUnder: Uint8Array | null = null;
+  let bestUnderQuality = -1;
+  let closest: Uint8Array | null = null;
+  let closestDiff = Number.POSITIVE_INFINITY;
 
-    const mime = (outType === 'webp') ? 'image/webp' : 'image/jpeg';
-    // 以更高质量为目标：在满足目标体积内尽量提高质量
-    let low = 0.5, high = 0.95;
-    const tolerance = Math.max(8, Math.floor(targetK * 0.02));
-    let bestUnderU8A: Uint8Array | null = null; // 达标范围内的最高质量
-    let bestUnderQ = -1;
-    let closestU8A: Uint8Array | null = null; // 最接近目标（可能略超）
-    let closestDiff = Number.POSITIVE_INFINITY;
-
-    for (let i = 0; i < 8; i++) {
-      const q = (low + high) / 2;
-      const blob = await canvasToBlob(canvas, mime, q);
-      const arrayBuf = await blob.arrayBuffer();
-      const cur = new Uint8Array(arrayBuf);
-      const sizeK = Math.floor(cur.length / 1000);
-      const diff = Math.abs(sizeK - targetK);
-      if (diff < closestDiff) { closestDiff = diff; closestU8A = cur; }
-
-      if (sizeK <= targetK) {
-        // 达标：提升质量
-        if (q > bestUnderQ) { bestUnderQ = q; bestUnderU8A = cur; }
-        if (targetK - sizeK <= tolerance) break; // 已足够接近
-        low = q;
-      } else {
-        // 超标：降低质量
-        high = q;
-      }
-    }
-
-    const chosen = bestUnderU8A || closestU8A || u8a;
-    const finalSize = Math.floor(chosen.length / 1000);
-    const success = finalSize <= targetK + Math.max(0, tolerance - 1);
-    return { u8a: chosen, sizeK: finalSize, success };
-  } finally {
-    URL.revokeObjectURL(url);
-  }
-}
-
-/**
- * 动态加载本地 limitPNG
- */
-let limitPNGLoading: Promise<any> | null = null;
-let limitPNGScriptsInjected = false;
-async function loadLimitPNG(timeoutMs = 8000): Promise<any | null> {
-  if ((window as any).limitPNG) return (window as any).limitPNG;
-  if (!limitPNGLoading) {
-    limitPNGLoading = new Promise(async (resolve) => {
-      try {
-        const timer = setTimeout(() => {
-          resolve(null);
-        }, timeoutMs);
-
-        if (!limitPNGScriptsInjected) {
-          const script = document.createElement('script');
-          script.src = './vendor/limitPNG.js';
-          script.onload = () => { clearTimeout(timer); resolve((window as any).limitPNG || null); };
-          script.onerror = () => { clearTimeout(timer); resolve(null); };
-          document.head.appendChild(script);
-          limitPNGScriptsInjected = true;
-        } else {
-          // 已注入但未就绪，等待就绪或超时
-          const checkReady = () => {
-            if ((window as any).limitPNG) {
-              clearTimeout(timer);
-              resolve((window as any).limitPNG);
-            } else {
-              setTimeout(checkReady, 100);
-            }
-          };
-          checkReady();
-        }
-      } catch {
-        resolve(null);
-      }
+  for (let i = 0; i < qualitySteps.length; i++) {
+    const quality = qualitySteps[i];
+    const inputFile = new File([baseBlob], 'export-image', { type: mime });
+    const compressed = await imageCompression(inputFile, {
+      useWebWorker: true,
+      initialQuality: quality,
+      maxSizeMB: Math.max(targetK / 1024, 0.02),
+      fileType: mime,
+      maxIteration: 6,
+      preserveExif: false
     });
+    const compressedArray = new Uint8Array(await compressed.arrayBuffer());
+    const sizeK = Math.floor(compressedArray.length / 1000);
+    const diff = Math.abs(sizeK - targetK);
+    if (diff < closestDiff) {
+      closestDiff = diff;
+      closest = compressedArray;
+    }
+    if (sizeK <= targetK) {
+      if (quality > bestUnderQuality) {
+        bestUnder = compressedArray;
+        bestUnderQuality = quality;
+      }
+      if (targetK - sizeK <= tolerance) break;
+    }
   }
-  return await limitPNGLoading;
+
+  const chosen = bestUnder || closest || u8a;
+  const finalSize = Math.floor(chosen.length / 1000);
+  return { u8a: chosen, sizeK: finalSize, success: finalSize <= targetK + Math.max(0, tolerance - 1) };
 }
 
 /**
- * 使用 limitPNG 将 PNG 压缩至目标大小
+ * 使用 UPNG 进行 PNG 量化压缩，保持输出仍为 PNG。
  */
-async function compressPngToTarget(u8a: Uint8Array, targetK: number): Promise<{ u8a: Uint8Array; sizeK: number; success: boolean; }> {
-  const lib = await loadLimitPNG();
-  if (lib && typeof lib.compressToTarget === 'function') {
-    try {
-      const ret = await lib.compressToTarget(u8a, targetK);
-      const out: Uint8Array = ret instanceof Uint8Array
-        ? ret
-        : (ret && ret.buffer instanceof ArrayBuffer
-          ? new Uint8Array(ret.buffer)
-          : (ret && ret.byteLength !== undefined
-            ? new Uint8Array(ret)
-            : u8a));
-      const sizeK = Math.floor(out.length / 1000);
-      return { u8a: out, sizeK, success: sizeK <= targetK };
-    } catch (e) {
-      // 库存在但压缩失败，回退为原图
+async function compressPngWithUpngToTarget(
+  u8a: Uint8Array,
+  targetK: number,
+  options: CompressStrategyOptions
+): Promise<{ u8a: Uint8Array; sizeK: number; success: boolean; }> {
+  try {
+    const decoded = UPNG.decode(toSafeArrayBuffer(u8a));
+    const rgbaList = UPNG.toRGBA8(decoded);
+    const rgba = rgbaList && rgbaList.length > 0 ? new Uint8Array(rgbaList[0]) : null;
+    if (!rgba) {
       const sizeK = Math.floor(u8a.length / 1000);
       return { u8a, sizeK, success: sizeK <= targetK };
     }
+
+    const width = decoded.width;
+    const height = decoded.height;
+    const colorCandidates = buildPngColorCandidates(options, targetK, Math.floor(u8a.length / 1000));
+    const tolerance = Math.max(8, Math.floor(targetK * 0.02));
+    let bestUnder: Uint8Array | null = null;
+    let bestUnderColors = -1;
+    let closest: Uint8Array | null = null;
+    let closestDiff = Number.POSITIVE_INFINITY;
+
+    for (let i = 0; i < colorCandidates.length; i++) {
+      const colors = colorCandidates[i];
+      const encoded = UPNG.encode([rgba.buffer], width, height, colors);
+      const current = new Uint8Array(encoded);
+      const sizeK = Math.floor(current.length / 1000);
+      const diff = Math.abs(sizeK - targetK);
+      if (diff < closestDiff) {
+        closestDiff = diff;
+        closest = current;
+      }
+      if (sizeK <= targetK) {
+        if (colors > bestUnderColors) {
+          bestUnder = current;
+          bestUnderColors = colors;
+        }
+        if (targetK - sizeK <= tolerance) break;
+      }
+    }
+
+    const chosen = bestUnder || closest || u8a;
+    const finalSize = Math.floor(chosen.length / 1000);
+    return { u8a: chosen, sizeK: finalSize, success: finalSize <= targetK + Math.max(0, tolerance - 1) };
+  } catch {
+    const sizeK = Math.floor(u8a.length / 1000);
+    return { u8a, sizeK, success: sizeK <= targetK };
   }
-  // 未加载到库：保持原图，并按目标判定
-  const sizeK = Math.floor(u8a.length / 1000);
-  return { u8a, sizeK, success: sizeK <= targetK };
+}
+
+/**
+ * 复制到独立 ArrayBuffer，规避 ArrayBufferLike 类型兼容问题。
+ */
+function toSafeArrayBuffer(u8a: Uint8Array): ArrayBuffer {
+  const ab = new ArrayBuffer(u8a.byteLength);
+  new Uint8Array(ab).set(u8a);
+  return ab;
+}
+
+function buildQualitySteps(options: CompressStrategyOptions, targetK: number, originalK: number) {
+  const compressionRatio = originalK > 0 ? targetK / originalK : 1;
+  const isAggressive = compressionRatio < 0.6;
+  const minQuality = clamp(isAggressive ? options.jpgMinQuality - 0.1 : options.jpgMinQuality, 0.3, 0.95);
+  const step = clamp(isAggressive ? options.jpgQualityStep + 0.02 : options.jpgQualityStep, 0.02, 0.3);
+  const maxRounds = clampInt(isAggressive ? options.jpgMaxRounds + 2 : options.jpgMaxRounds, 3, 12);
+  const steps: number[] = [];
+  let current = 0.92;
+  for (let i = 0; i < maxRounds; i++) {
+    steps.push(Number(Math.max(minQuality, current).toFixed(2)));
+    current -= step;
+  }
+  return [...new Set(steps)];
+}
+
+function buildPngColorCandidates(options: CompressStrategyOptions, targetK: number, originalK: number) {
+  const compressionRatio = originalK > 0 ? targetK / originalK : 1;
+  const isAggressive = compressionRatio < 0.55;
+  const adjustedMinColors = isAggressive ? Math.min(options.pngMinColors, 8) : options.pngMinColors;
+  const minColors = clampInt(adjustedMinColors, 8, 256);
+  const base = [256, 192, 128, 96, 64, 48, 32, 24, 16, 8];
+  return base.filter((colors) => colors >= minColors);
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function clampInt(value: number, min: number, max: number) {
+  return Math.round(clamp(value, min, max));
 }
 
 /**
@@ -379,6 +419,8 @@ export async function exportHandler(
 
   const files: { name: string; data: Uint8Array; }[] = [];
   
+  const options: CompressStrategyOptions = { ...DEFAULT_COMPRESS_OPTIONS };
+
   for (let i = 0; i < selectedItems.length; i++) {
     const item = selectedItems[i];
     const targetK = item.s && item.s !== '' ? parseInt(item.s) : 0;
@@ -389,7 +431,7 @@ export async function exportHandler(
     if (targetK > 0 && item.needCompress) {
       if (item.type === 'jpg' || item.type === 'jpeg' || item.type === 'webp') {
         try {
-          const { u8a, sizeK, success } = await compressJpegWebpToTarget(outData, item.type as any, targetK);
+          const { u8a, sizeK, success } = await compressJpegWebpToTarget(outData, item.type as any, targetK, options);
           outData = u8a;
           outSize = sizeK;
           failed = !success;
@@ -398,7 +440,7 @@ export async function exportHandler(
         }
       } else if (item.type === 'png') {
         try {
-          const { u8a, sizeK, success } = await compressPngToTarget(outData, targetK);
+          const { u8a, sizeK, success } = await compressPngWithUpngToTarget(outData, targetK, options);
           outData = u8a;
           outSize = sizeK;
           failed = !success;

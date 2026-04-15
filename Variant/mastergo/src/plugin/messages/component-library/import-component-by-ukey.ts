@@ -83,7 +83,15 @@ async function handler(data: { groups?: Array<{ description: string; ukeys: stri
         }
 
         // 跳过 4 个必需组件集（已在第一阶段处理）
-        if (REQUIRED_COMPONENT_SET_DESCRIPTIONS.has(group.description)) continue;
+        // 支持"库名::描述"格式
+        let descriptionToCheck = group.description;
+        if (group.description.includes('::')) {
+          const parts = group.description.split('::');
+          if (parts.length === 2) {
+            descriptionToCheck = parts[1]; // 提取描述部分
+          }
+        }
+        if (REQUIRED_COMPONENT_SET_DESCRIPTIONS.has(descriptionToCheck)) continue;
 
         // 跳过非必需组件集（避免 importComponentByKeyAsync 报错）
         const componentInfo = ukeyToComponentMap.get(ukey);
@@ -399,40 +407,64 @@ async function handler(data: { groups?: Array<{ description: string; ukeys: stri
     }
   }
 
-  // 5) 按固定顺序处理 4 个组件集（横向一排：背景、IP、LOGO、主题；每组先横后竖）
-  const requiredMap = new Map<string, string>();
-    groups.forEach(g => {
-      if (REQUIRED_COMPONENT_SET_DESCRIPTIONS.has(g.description) && Array.isArray(g.ukeys) && g.ukeys[0]) {
-        requiredMap.set(g.description, String(g.ukeys[0]));
+  // 5) 按团队库和固定顺序处理必需组件集
+  // 支持"库名::描述"格式，为每个团队库分别导入对应的必需组件集
+  const requiredMapByLibrary = new Map<string, Map<string, string>>(); // 库名 -> (描述 -> ukey)
+  
+  groups.forEach(g => {
+    // 检查是否为必需组件集描述（支持"库名::描述"格式）
+    let libraryName: string | null = null;
+    let description: string = g.description;
+    
+    // 解析"库名::描述"格式
+    if (g.description.includes('::')) {
+      const parts = g.description.split('::');
+      if (parts.length === 2) {
+        libraryName = parts[0];
+        description = parts[1];
       }
-    });
+    }
+    
+    // 检查是否为必需组件集描述
+    if (REQUIRED_COMPONENT_SET_DESCRIPTIONS.has(description) && Array.isArray(g.ukeys) && g.ukeys[0]) {
+      const libKey = libraryName || 'default'; // 如果没有库名，使用 'default'
+      if (!requiredMapByLibrary.has(libKey)) {
+        requiredMapByLibrary.set(libKey, new Map());
+      }
+      requiredMapByLibrary.get(libKey)!.set(description, String(g.ukeys[0]));
+    }
+  });
 
   // 给组件集一条单独的横向排布行，首个组件放在首个普通组件的正上方
   // 同时收集所有必需组件集的组件（用于替换普通组件内部的实例）
   const requiredComponentsMap = new Map<string, any>();
   let setX = requiredSetX;
-  for (const desc of REQUIRED_COMPONENT_SET_ORDER) {
-    const ukey = requiredMap.get(desc);
-    if (!ukey) continue;
-    try {
-      const result = await importRequiredComponentSet(ukey, desc, currentPage, { x: setX, y: requiredSetY, gap: 20 });
-      if (result?.success) {
-        successCount++;
-        if (typeof result.endX === 'number') setX = result.endX;
-        // 收集必需组件集的组件
-        if (result.components && result.components.size > 0) {
-          result.components.forEach((component, name) => {
-            requiredComponentsMap.set(name, component);
-          });
+  
+  // 为每个团队库分别导入必需组件集
+  for (const [libKey, requiredMap] of requiredMapByLibrary.entries()) {
+    for (const desc of REQUIRED_COMPONENT_SET_ORDER) {
+      const ukey = requiredMap.get(desc);
+      if (!ukey) continue;
+      try {
+        const result = await importRequiredComponentSet(ukey, desc, currentPage, { x: setX, y: requiredSetY, gap: 20 });
+        if (result?.success) {
+          successCount++;
+          if (typeof result.endX === 'number') setX = result.endX;
+          // 收集必需组件集的组件
+          if (result.components && result.components.size > 0) {
+            result.components.forEach((component, name) => {
+              requiredComponentsMap.set(name, component);
+            });
+          }
+        } else {
+          // 记录组件集导入失败
+          failedUkeys.set(ukey, result?.error || '组件集导入失败');
+          failCount++;
         }
-      } else {
-        // 记录组件集导入失败
-        failedUkeys.set(ukey, result?.error || '组件集导入失败');
+      } catch (e: any) {
+        failedUkeys.set(ukey, parseErrorReason(e));
         failCount++;
       }
-    } catch (e: any) {
-      failedUkeys.set(ukey, parseErrorReason(e));
-      failCount++;
     }
   }
 
