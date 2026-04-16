@@ -1,8 +1,9 @@
 /**
  * 导出处理器
  * 负责图片压缩、打包和保存功能
+ *
+ * 约束：压缩仅调整编码质量或 PNG 调色板，不改变像素宽高；格式转换仅在「期望类型与源数据不一致」时执行。
  */
-import imageCompression from 'browser-image-compression';
 import UPNG from 'upng-js';
 
 // 导出项接口定义
@@ -78,7 +79,7 @@ function detectImageTypeByMagicNumber(data: Uint8Array): 'png' | 'jpg' | 'webp' 
 }
 
 /**
- * 将图片数据转换为指定格式
+ * 将图片数据转换为指定格式（Canvas 与解码后图像同宽高，不缩放）。
  * @param data 原始图片数据
  * @param targetType 目标格式：'jpg' | 'jpeg' | 'png' | 'webp'
  * @returns 转换后的数据
@@ -109,49 +110,40 @@ async function convertImageFormat(data: Uint8Array, targetType: 'jpg' | 'jpeg' |
 }
 
 /**
- * 确保文件数据与期望格式匹配，如果不匹配则转换格式
+ * 确保输出字节与期望扩展名一致：魔数已匹配则原样返回，避免二次编码；仅在不一致时用 Canvas 同尺寸重编码。
  * @param data 文件数据
  * @param expectedType 期望的类型（jpg/jpeg/png/webp）
- * @returns Promise<{ data: Uint8Array; type: string }> 转换后的数据和类型（保持原始类型名称，如jpeg保持为jpeg）
+ * @returns Promise<{ data: Uint8Array; type: string }> 数据与扩展名片段（保持 jpeg 等原始写法）
  */
 async function ensureCorrectFormat(data: Uint8Array, expectedType: string): Promise<{ data: Uint8Array; type: string }> {
   const detectedType = detectImageTypeByMagicNumber(data);
   const lowerExpected = expectedType.toLowerCase();
-  // 标准化类型用于比较（jpeg -> jpg），但保留原始类型名称用于返回
   const normalizedExpected = lowerExpected === 'jpeg' ? 'jpg' : lowerExpected;
-  const originalType = lowerExpected; // 保留原始类型名称（jpeg保持为jpeg，jpg保持为jpg）
-  
-  // 如果无法检测类型，假设数据正确，但仍需要确保格式正确
+  const originalType = lowerExpected;
+
+  if (detectedType && detectedType === normalizedExpected) {
+    return { data, type: originalType };
+  }
+
   if (!detectedType) {
-    console.warn(`[文件类型验证] 无法检测文件类型，将转换为期望格式: ${originalType}`);
+    console.warn(`[文件类型验证] 无法识别文件头，将按期望格式尝试同尺寸重编码: ${originalType}`);
     try {
       const convertedData = await convertImageFormat(data, originalType as 'jpg' | 'jpeg' | 'png' | 'webp');
       return { data: convertedData, type: originalType };
     } catch (e) {
       console.error(`[文件类型验证] 格式转换失败:`, e);
-      return { data, type: originalType };
+      throw new Error('无法将图片转为所选格式，请重试或更换导出格式。');
     }
   }
-  
-  // 如果格式匹配，直接返回（jpeg和jpg都视为匹配）
-  if (detectedType === normalizedExpected || 
-      (normalizedExpected === 'jpg' && detectedType === 'jpg') ||
-      (lowerExpected === 'jpeg' && detectedType === 'jpg')) {
-    return { data, type: originalType };
-  }
-  
-  // 格式不匹配，需要转换
-  console.warn(`[文件类型验证] 文件类型不匹配！期望: ${originalType}, 实际: ${detectedType}，正在转换格式...`);
-  
+
+  console.warn(`[文件类型验证] 魔数与期望不一致，期望: ${originalType}, 实际: ${detectedType}，将同尺寸转换`);
+
   try {
     const convertedData = await convertImageFormat(data, originalType as 'jpg' | 'jpeg' | 'png' | 'webp');
-    console.log(`[文件类型验证] 格式转换成功: ${detectedType} -> ${originalType}`);
     return { data: convertedData, type: originalType };
   } catch (e) {
     console.error(`[文件类型验证] 格式转换失败:`, e);
-    // 转换失败，使用原始数据但警告
-    console.warn(`[文件类型验证] 格式转换失败，使用原始数据（可能无法通过后台验证）`);
-    return { data, type: originalType };
+    throw new Error('无法将图片转为所选格式，请重试或更换导出格式。');
   }
 }
 
@@ -192,7 +184,8 @@ function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: number)
 }
 
 /**
- * 使用二分质量压缩到目标大小（仅 jpg/webp），返回 {u8a, sizeK, success}
+ * 使用 Canvas 固定尺寸 + 质量阶梯压缩到目标大小（仅 jpg/webp）。
+ * 不使用会按浏览器上限缩小画布的第三方压缩库，避免像素尺寸被改变。
  */
 async function compressJpegWebpToTarget(
   u8a: Uint8Array,
@@ -203,37 +196,47 @@ async function compressJpegWebpToTarget(
   const mime = outType === 'webp' ? 'image/webp' : 'image/jpeg';
   const tolerance = Math.max(8, Math.floor(targetK * 0.02));
   const qualitySteps = buildQualitySteps(options, targetK, Math.floor(u8a.length / 1000));
-  const baseBlob = new Blob([toSafeArrayBuffer(u8a)], { type: mime });
+  const url = u8aToObjectUrl(u8a, 'png');
   let bestUnder: Uint8Array | null = null;
   let bestUnderQuality = -1;
   let closest: Uint8Array | null = null;
   let closestDiff = Number.POSITIVE_INFINITY;
 
-  for (let i = 0; i < qualitySteps.length; i++) {
-    const quality = qualitySteps[i];
-    const inputFile = new File([baseBlob], 'export-image', { type: mime });
-    const compressed = await imageCompression(inputFile, {
-      useWebWorker: true,
-      initialQuality: quality,
-      maxSizeMB: Math.max(targetK / 1024, 0.02),
-      fileType: mime,
-      maxIteration: 6,
-      preserveExif: false
-    });
-    const compressedArray = new Uint8Array(await compressed.arrayBuffer());
-    const sizeK = Math.floor(compressedArray.length / 1000);
-    const diff = Math.abs(sizeK - targetK);
-    if (diff < closestDiff) {
-      closestDiff = diff;
-      closest = compressedArray;
+  try {
+    const img = await loadImage(url);
+    const canvas = document.createElement('canvas');
+    const w = img.naturalWidth || img.width;
+    const h = img.naturalHeight || img.height;
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('canvas context 获取失败');
+    if (mime === 'image/jpeg') {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, w, h);
     }
-    if (sizeK <= targetK) {
-      if (quality > bestUnderQuality) {
-        bestUnder = compressedArray;
-        bestUnderQuality = quality;
+    ctx.drawImage(img, 0, 0);
+
+    for (let i = 0; i < qualitySteps.length; i++) {
+      const quality = qualitySteps[i];
+      const blob = await canvasToBlob(canvas, mime, quality);
+      const compressedArray = new Uint8Array(await blob.arrayBuffer());
+      const sizeK = Math.floor(compressedArray.length / 1000);
+      const diff = Math.abs(sizeK - targetK);
+      if (diff < closestDiff) {
+        closestDiff = diff;
+        closest = compressedArray;
       }
-      if (targetK - sizeK <= tolerance) break;
+      if (sizeK <= targetK) {
+        if (quality > bestUnderQuality) {
+          bestUnder = compressedArray;
+          bestUnderQuality = quality;
+        }
+        if (targetK - sizeK <= tolerance) break;
+      }
     }
+  } finally {
+    URL.revokeObjectURL(url);
   }
 
   const chosen = bestUnder || closest || u8a;
@@ -252,6 +255,7 @@ async function compressPngWithUpngToTarget(
   try {
     const decoded = UPNG.decode(toSafeArrayBuffer(u8a));
     const rgbaList = UPNG.toRGBA8(decoded);
+    /** 多帧 PNG 仅处理首帧，与原先导出假设一致 */
     const rgba = rgbaList && rgbaList.length > 0 ? new Uint8Array(rgbaList[0]) : null;
     if (!rgba) {
       const sizeK = Math.floor(u8a.length / 1000);
