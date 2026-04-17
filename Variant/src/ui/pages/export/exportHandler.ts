@@ -2,7 +2,7 @@
  * 导出处理器
  * 负责图片压缩、打包和保存功能
  *
- * 约束：压缩仅调整编码质量或 PNG 调色板，不改变像素宽高；格式转换仅在「期望类型与源数据不一致」时执行。
+ * 约束：压缩不改变像素宽高；PNG 仅无损重编码（不调色板量化）；JPG/WebP 在不超过目标体积前提下尽量提高质量。
  */
 import UPNG from 'upng-js';
 
@@ -25,17 +25,15 @@ export interface ExportItem {
 }
 
 export interface CompressStrategyOptions {
-  jpgMinQuality: number;
-  jpgQualityStep: number;
-  jpgMaxRounds: number;
-  pngMinColors: number;
+  /** JPG/WebP 质量搜索下限（含） */
+  jpgQualityMin: number;
+  /** JPG/WebP 质量搜索上限（含） */
+  jpgQualityMax: number;
 }
 
 const DEFAULT_COMPRESS_OPTIONS: CompressStrategyOptions = {
-  jpgMinQuality: 0.56,
-  jpgQualityStep: 0.06,
-  jpgMaxRounds: 7,
-  pngMinColors: 16
+  jpgQualityMin: 0.3,
+  jpgQualityMax: 0.98
 };
 
 /**
@@ -184,7 +182,7 @@ function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: number)
 }
 
 /**
- * 使用 Canvas 固定尺寸 + 质量阶梯压缩到目标大小（仅 jpg/webp）。
+ * 使用 Canvas 固定尺寸 + 质量二分搜索：在不超过目标体积（k）的前提下尽量提高质量。
  * 不使用会按浏览器上限缩小画布的第三方压缩库，避免像素尺寸被改变。
  */
 async function compressJpegWebpToTarget(
@@ -194,13 +192,11 @@ async function compressJpegWebpToTarget(
   options: CompressStrategyOptions
 ): Promise<{ u8a: Uint8Array; sizeK: number; success: boolean; }> {
   const mime = outType === 'webp' ? 'image/webp' : 'image/jpeg';
-  const tolerance = Math.max(8, Math.floor(targetK * 0.02));
-  const qualitySteps = buildQualitySteps(options, targetK, Math.floor(u8a.length / 1000));
+  const qMin = clamp(options.jpgQualityMin, 0.05, 0.99);
+  const qMax = clamp(options.jpgQualityMax, qMin, 0.99);
   const url = u8aToObjectUrl(u8a, 'png');
-  let bestUnder: Uint8Array | null = null;
-  let bestUnderQuality = -1;
-  let closest: Uint8Array | null = null;
-  let closestDiff = Number.POSITIVE_INFINITY;
+
+  const fitsTargetK = (byteLen: number) => Math.floor(byteLen / 1000) <= targetK;
 
   try {
     const img = await loadImage(url);
@@ -217,40 +213,52 @@ async function compressJpegWebpToTarget(
     }
     ctx.drawImage(img, 0, 0);
 
-    for (let i = 0; i < qualitySteps.length; i++) {
-      const quality = qualitySteps[i];
-      const blob = await canvasToBlob(canvas, mime, quality);
-      const compressedArray = new Uint8Array(await blob.arrayBuffer());
-      const sizeK = Math.floor(compressedArray.length / 1000);
-      const diff = Math.abs(sizeK - targetK);
-      if (diff < closestDiff) {
-        closestDiff = diff;
-        closest = compressedArray;
-      }
-      if (sizeK <= targetK) {
-        if (quality > bestUnderQuality) {
-          bestUnder = compressedArray;
-          bestUnderQuality = quality;
-        }
-        if (targetK - sizeK <= tolerance) break;
+    const encodeAt = async (q: number) => {
+      const blob = await canvasToBlob(canvas, mime, q);
+      return new Uint8Array(await blob.arrayBuffer());
+    };
+
+    const lowBuf = await encodeAt(qMin);
+    if (!fitsTargetK(lowBuf.length)) {
+      const sizeK = Math.floor(lowBuf.length / 1000);
+      return { u8a: lowBuf, sizeK, success: false };
+    }
+
+    const highBuf = await encodeAt(qMax);
+    if (fitsTargetK(highBuf.length)) {
+      const sizeK = Math.floor(highBuf.length / 1000);
+      return { u8a: highBuf, sizeK, success: true };
+    }
+
+    let lo = qMin;
+    let hi = qMax;
+    let best = lowBuf;
+    for (let iter = 0; iter < 28; iter++) {
+      if (hi - lo < 0.003) break;
+      const mid = (lo + hi) / 2;
+      const midBuf = await encodeAt(mid);
+      if (fitsTargetK(midBuf.length)) {
+        best = midBuf;
+        lo = mid;
+      } else {
+        hi = mid;
       }
     }
+    const finalSize = Math.floor(best.length / 1000);
+    return { u8a: best, sizeK: finalSize, success: finalSize <= targetK };
   } finally {
     URL.revokeObjectURL(url);
   }
-
-  const chosen = bestUnder || closest || u8a;
-  const finalSize = Math.floor(chosen.length / 1000);
-  return { u8a: chosen, sizeK: finalSize, success: finalSize <= targetK + Math.max(0, tolerance - 1) };
 }
 
 /**
- * 使用 UPNG 进行 PNG 量化压缩，保持输出仍为 PNG。
+ * PNG 无损重编码：ps=0 且禁止调色板路径，避免量化损质；仅当结果体积（k）不超过目标时记为成功。
+ * 若重编码后体积大于原始文件，则保留原始字节（不采用本次重编码结果）。
  */
 async function compressPngWithUpngToTarget(
   u8a: Uint8Array,
   targetK: number,
-  options: CompressStrategyOptions
+  _options: CompressStrategyOptions
 ): Promise<{ u8a: Uint8Array; sizeK: number; success: boolean; }> {
   try {
     const decoded = UPNG.decode(toSafeArrayBuffer(u8a));
@@ -264,35 +272,15 @@ async function compressPngWithUpngToTarget(
 
     const width = decoded.width;
     const height = decoded.height;
-    const colorCandidates = buildPngColorCandidates(options, targetK, Math.floor(u8a.length / 1000));
-    const tolerance = Math.max(8, Math.floor(targetK * 0.02));
-    let bestUnder: Uint8Array | null = null;
-    let bestUnderColors = -1;
-    let closest: Uint8Array | null = null;
-    let closestDiff = Number.POSITIVE_INFINITY;
-
-    for (let i = 0; i < colorCandidates.length; i++) {
-      const colors = colorCandidates[i];
-      const encoded = UPNG.encode([rgba.buffer], width, height, colors);
-      const current = new Uint8Array(encoded);
-      const sizeK = Math.floor(current.length / 1000);
-      const diff = Math.abs(sizeK - targetK);
-      if (diff < closestDiff) {
-        closestDiff = diff;
-        closest = current;
-      }
-      if (sizeK <= targetK) {
-        if (colors > bestUnderColors) {
-          bestUnder = current;
-          bestUnderColors = colors;
-        }
-        if (targetK - sizeK <= tolerance) break;
-      }
+    /** 0 表示不量化；forbidPlte 为 true 强制真彩色/灰度无损路径，避免 ≤256 色时改用调色板 */
+    const encoded = UPNG.encode([rgba], width, height, 0, undefined, true);
+    const out = new Uint8Array(encoded);
+    if (out.length > u8a.length) {
+      const sizeK = Math.floor(u8a.length / 1000);
+      return { u8a, sizeK, success: sizeK <= targetK };
     }
-
-    const chosen = bestUnder || closest || u8a;
-    const finalSize = Math.floor(chosen.length / 1000);
-    return { u8a: chosen, sizeK: finalSize, success: finalSize <= targetK + Math.max(0, tolerance - 1) };
+    const finalSize = Math.floor(out.length / 1000);
+    return { u8a: out, sizeK: finalSize, success: finalSize <= targetK };
   } catch {
     const sizeK = Math.floor(u8a.length / 1000);
     return { u8a, sizeK, success: sizeK <= targetK };
@@ -308,36 +296,8 @@ function toSafeArrayBuffer(u8a: Uint8Array): ArrayBuffer {
   return ab;
 }
 
-function buildQualitySteps(options: CompressStrategyOptions, targetK: number, originalK: number) {
-  const compressionRatio = originalK > 0 ? targetK / originalK : 1;
-  const isAggressive = compressionRatio < 0.6;
-  const minQuality = clamp(isAggressive ? options.jpgMinQuality - 0.1 : options.jpgMinQuality, 0.3, 0.95);
-  const step = clamp(isAggressive ? options.jpgQualityStep + 0.02 : options.jpgQualityStep, 0.02, 0.3);
-  const maxRounds = clampInt(isAggressive ? options.jpgMaxRounds + 2 : options.jpgMaxRounds, 3, 12);
-  const steps: number[] = [];
-  let current = 0.92;
-  for (let i = 0; i < maxRounds; i++) {
-    steps.push(Number(Math.max(minQuality, current).toFixed(2)));
-    current -= step;
-  }
-  return [...new Set(steps)];
-}
-
-function buildPngColorCandidates(options: CompressStrategyOptions, targetK: number, originalK: number) {
-  const compressionRatio = originalK > 0 ? targetK / originalK : 1;
-  const isAggressive = compressionRatio < 0.55;
-  const adjustedMinColors = isAggressive ? Math.min(options.pngMinColors, 8) : options.pngMinColors;
-  const minColors = clampInt(adjustedMinColors, 8, 256);
-  const base = [256, 192, 128, 96, 64, 48, 32, 24, 16, 8];
-  return base.filter((colors) => colors >= minColors);
-}
-
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
-}
-
-function clampInt(value: number, min: number, max: number) {
-  return Math.round(clamp(value, min, max));
 }
 
 /**
