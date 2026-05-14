@@ -88,6 +88,7 @@
 <script lang="ts" setup>
 import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { MessageType, addMessageListener, sendMsgToPlugin } from '../../../messages';
+import { compareAlphanumeric } from '../../utils/common';
 
 interface ComponentInfo {
   id: string;
@@ -169,8 +170,19 @@ const groupedComponentList = computed<ComponentGroup[]>(() => {
       groups[uniqueKey].cover = comp.cover;
     }
   });
-  
-  return Object.keys(groups).map(key => groups[key]);
+
+  const list = Object.keys(groups).map((key) => groups[key]);
+  list.forEach((g) => {
+    g.components.sort((c1, c2) => compareAlphanumeric(c1.name || '', c2.name || ''));
+  });
+  list.sort((g1, g2) => {
+    const lib1 = g1.libraryName || g1.category || '';
+    const lib2 = g2.libraryName || g2.category || '';
+    const byLib = compareAlphanumeric(lib1, lib2);
+    if (byLib !== 0) return byLib;
+    return compareAlphanumeric(g1.description || '', g2.description || '');
+  });
+  return list;
 });
 
 // 动态生成标签列表（基于分组分类/库名，只显示包含目标关键词的）
@@ -182,7 +194,7 @@ const tagList = computed<Tag[]>(() => {
     }
   });
   
-  const dynamicTags = Array.from(tags).sort().map(tag => ({
+  const dynamicTags = Array.from(tags).sort(compareAlphanumeric).map(tag => ({
     id: tag,
     name: tag
   }));

@@ -33,6 +33,7 @@ import batchButtonGenerate from './messages/toolbox/utility-tools/batch-button-g
 import batchExtendUpload from './messages/toolbox/utility-tools/batch-extend-upload';
 import batchExtendProcess from './messages/toolbox/utility-tools/batch-extend-process';
 import batchRename from './messages/toolbox/utility-tools/batch-rename';
+import batchSwitchInstance from './messages/toolbox/utility-tools/batch-switch-instance';
 import dataFlowConvert from './messages/toolbox/utility-tools/convert-to-data-flow/data-flow-convert';
 import dataFlowProcess from './messages/toolbox/utility-tools/data-flow-process';
 
@@ -95,6 +96,7 @@ const messages = [
   batchExtendUpload,
   ...(Array.isArray(batchExtendProcess) ? batchExtendProcess : [batchExtendProcess]),
   batchRename,
+  ...(Array.isArray(batchSwitchInstance) ? batchSwitchInstance : [batchSwitchInstance]),
   dataFlowConvert,
   dataFlowProcess,
   getComponentLibrary,

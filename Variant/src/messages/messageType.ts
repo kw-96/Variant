@@ -68,6 +68,12 @@ export enum MessageType {
   // 批量命名相关
   BATCH_RENAME = 'batchRename',
 
+  // 批量切换实例相关
+  BATCH_SWITCH_INSTANCES_GET = 'batchSwitchInstancesGet',
+  BATCH_SWITCH_INSTANCES_DATA = 'batchSwitchInstancesData',
+  BATCH_SWITCH_INSTANCES_APPLY = 'batchSwitchInstancesApply',
+  BATCH_SWITCH_INSTANCES_RESULT = 'batchSwitchInstancesResult',
+
   // 鉴权链路（仅权限检测）
   GET_CURRENT_USER = 'GET_CURRENT_USER',
   CURRENT_USER_RESULT = 'CURRENT_USER_RESULT'

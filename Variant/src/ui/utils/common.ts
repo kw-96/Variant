@@ -24,3 +24,16 @@ export const generateRandomId = () => {
   }
   return id;
 };
+
+/**
+ * 列表展示用字母数字混合自然排序（A-Z、0-9 分段连续编号等）。
+ * @param a 参与比较的字符串
+ * @param b 参与比较的字符串
+ * @returns 与 localeCompare 一致：负数表示 a 排在 b 前
+ */
+export function compareAlphanumeric(a: string, b: string): number {
+  return String(a ?? '').localeCompare(String(b ?? ''), 'zh-CN', {
+    numeric: true,
+    sensitivity: 'base'
+  });
+}

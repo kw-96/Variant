@@ -203,7 +203,6 @@ const currentPageList = computed(() => {
 // 当没有子标签时显示的单页组件
 const currentSinglePage = computed(() => {
   const currentNav = navList[activeNav.value];
-  // 独立页面
   if (currentNav.name === '组件库') return ComponentLibrary;
   if (currentNav.name === '工具箱') return Toolbox;
   return null;

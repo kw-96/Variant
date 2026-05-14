@@ -1,14 +1,25 @@
 <template>
   <div :class="$style.container">
-    <!-- 搜索栏 -->
-    <div :class="$style.searchBar">
-      <van-search
-        v-model="searchValue"
-        placeholder="搜索名称或关键词"
-        shape="round"
-        clearable
-        @clear="handleClear"
-      />
+    <div :class="$style.searchBarRow">
+      <div :class="$style.searchGrow">
+        <van-search
+          v-model="searchValue"
+          placeholder="搜索名称或关键词"
+          shape="round"
+          clearable
+          :class="$style.searchBar"
+          @clear="handleClear"
+        />
+      </div>
+      <van-button
+        type="primary"
+        plain
+        size="small"
+        :class="$style.batchBtn"
+        @click="handleGoBatchImport"
+      >
+        批量导入
+      </van-button>
     </div>
 
     <!-- 动态标签栏 (定高隐藏 + 下拉框) -->
@@ -94,38 +105,49 @@
       </van-button>
     </div>
   </div>
+
+  <van-popup
+    v-model:show="showBatchImportPopup"
+    position="center"
+    round
+    :close-on-click-overlay="true"
+    :style="{
+      width: 'calc(100vw - 32px)',
+      height: 'calc(100vh - 32px)',
+      maxWidth: 'calc(100vw - 32px)',
+      maxHeight: 'calc(100vh - 32px)',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+      background: 'var(--bg-secondary)',
+      boxSizing: 'border-box'
+    }"
+  >
+    <BatchImportPanel
+      v-if="showBatchImportPopup"
+      :rows="componentList"
+      :catalog-loading="isLoading"
+      :catalog-load-error="loadError"
+      @close="showBatchImportPopup = false"
+    />
+  </van-popup>
 </template>
 
 <script lang="ts" setup>
 import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { MessageType, addMessageListener, sendMsgToPlugin } from '../../../messages';
-
-interface ComponentInfo {
-  id: string;
-  name: string;
-  ukey: string;
-  description: string;
-  type: string;
-  cover: string;
-  width: number;
-  height: number;
-  libraryName: string;
-  category: string;
-}
-
-interface ComponentGroup {
-  key: string; // 唯一标识
-  description: string;
-  category: string;
-  components: ComponentInfo[];
-  cover: string;
-  libraryName: string;
-}
+import { compareAlphanumeric } from '../../utils/common';
+import { containsCatalogHiddenKeyword, shouldExcludeBrowseGroup } from './catalogFilters';
+import type { ComponentCatalogRow } from './catalogGroup';
+import { buildComponentCatalogGroups } from './catalogGroup';
+import BatchImportPanel from './batch-import.vue';
 
 interface Tag {
   id: string;
   name: string;
 }
+
+const showBatchImportPopup = ref(false);
 
 const searchValue = ref('');
 const showDropdown = ref(false);
@@ -136,65 +158,23 @@ const loadingText = ref('加载组件库中...');
 const isImporting = ref(false);
 const loadError = ref(false);
 
-const componentList = ref<ComponentInfo[]>([]);
+const componentList = ref<ComponentCatalogRow[]>([]);
 
-// 按 库名 分组组件
-const groupedComponentList = computed<ComponentGroup[]>(() => {
-  const groups: Record<string, ComponentGroup> = {};
-  
-  componentList.value.forEach(comp => {
-    const desc = comp.description ? comp.description.trim() : '';
-    // 生成唯一Key：库名::描述
-    const uniqueKey = `${comp.category}::${desc}`;
-    
-    if (!groups[uniqueKey]) {
-      groups[uniqueKey] = {
-        key: uniqueKey,
-        description: desc,
-        category: comp.category, // 这里的 category 已经是库名
-        components: [],
-        cover: comp.cover,
-        libraryName: comp.libraryName
-      };
-    }
-    
-    groups[uniqueKey].components.push(comp);
-    
-    // 如果当前组封面为空，且当前组件有封面，则更新
-    if (!groups[uniqueKey].cover && comp.cover) {
-      groups[uniqueKey].cover = comp.cover;
-    }
-  });
-  
-  return Object.keys(groups).map(key => groups[key]);
-});
-
-// 需要屏蔽的关键词
-const hiddenKeywords = ['在线游戏', '新游预约'];
-
-// 需要屏蔽的描述关键词（不显示包含这些关键词的内容）
-const excludedDescriptionKeywords = ['背景', 'LOGO', 'IP', '主题'];
-
-// 检查是否包含屏蔽关键词
-function containsHiddenKeyword(text: string): boolean {
-  return hiddenKeywords.some(keyword => text.includes(keyword));
-}
-
-// 检查是否包含屏蔽的描述关键词
-function containsExcludedDescriptionKeyword(text: string): boolean {
-  return excludedDescriptionKeywords.some(keyword => text.includes(keyword));
-}
+// 按 库名 + 组件描述分组（顺序与共用工具一致）
+const groupedComponentList = computed(() =>
+  buildComponentCatalogGroups(componentList.value)
+);
 
 // 动态生成标签列表（基于分组分类/库名）
 const tagList = computed<Tag[]>(() => {
   const tags = new Set<string>();
-  groupedComponentList.value.forEach(group => {
-    if (group.category && !containsHiddenKeyword(group.category)) {
+  groupedComponentList.value.forEach((group) => {
+    if (group.category && !containsCatalogHiddenKeyword(group.category)) {
       tags.add(group.category);
     }
   });
   
-  const dynamicTags = Array.from(tags).sort().map(tag => ({
+  const dynamicTags = Array.from(tags).sort(compareAlphanumeric).map(tag => ({
     id: tag,
     name: tag
   }));
@@ -204,39 +184,15 @@ const tagList = computed<Tag[]>(() => {
 
 // 筛选分组
 const filteredGroups = computed(() => {
-  return groupedComponentList.value.filter(group => {
-    // 屏蔽包含关键词的分组
-    if (containsHiddenKeyword(group.category) || containsHiddenKeyword(group.description)) {
+  return groupedComponentList.value.filter((group) => {
+    if (shouldExcludeBrowseGroup(group, componentList.value)) {
       return false;
     }
-    
-    // 排除包含屏蔽描述关键词的分组
-    if (containsExcludedDescriptionKeyword(group.description)) {
-      return false;
-    }
-    
-    // 如果分组描述为空（"无描述"），检查该分组中的组件是否可能是被屏蔽组件集的内部组件
-    if (!group.description || group.description.trim() === '') {
-      // 检查该分组中是否有组件集类型的组件
-      const hasComponentSet = group.components.some(comp => comp.type === 'COMPONENT_SET');
-      // 如果都是普通组件且没有组件集，可能是被屏蔽组件集的内部组件
-      if (!hasComponentSet && group.components.length > 0) {
-        // 检查是否存在同名的组件集（描述包含屏蔽关键词）
-        const hasMatchingComponentSet = componentList.value.some(comp => 
-          comp.type === 'COMPONENT_SET' &&
-          containsExcludedDescriptionKeyword(comp.description) &&
-          comp.category === group.category
-        );
-        // 如果存在匹配的组件集，则隐藏该"无描述"分组
-        if (hasMatchingComponentSet) {
-          return false;
-        }
-      }
-    }
-    
+
     const tagMatch = activeTag.value === 'all' || group.category === activeTag.value;
-    // 搜索匹配描述
-    const searchMatch = group.description.toLowerCase().includes(searchValue.value.toLowerCase());
+    const searchMatch = group.description
+      .toLowerCase()
+      .includes(searchValue.value.toLowerCase());
     return tagMatch && searchMatch;
   });
 });
@@ -248,6 +204,10 @@ function getEmptyText() {
 
 function handleClear() {
   searchValue.value = '';
+}
+
+function handleGoBatchImport() {
+  showBatchImportPopup.value = true;
 }
 
 function handleTagClick(tagId: string) {
@@ -400,6 +360,22 @@ onUnmounted(() => {
   padding: 12px;
   box-sizing: border-box;
   background-color: var(--bg-secondary);
+}
+
+.searchBarRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.searchGrow {
+  flex: 1;
+  min-width: 0;
+}
+
+.batchBtn {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .searchBar {

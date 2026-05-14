@@ -301,8 +301,31 @@ function clamp(value: number, min: number, max: number) {
 }
 
 /**
- * 动态加载 CDN：JSZip + FileSaver
+ * 为 ZIP 内条目分配不重名文件名：首次保持原名；若与已占位冲突则追加 `_2`、`_3` 等于扩展名前。
  */
+function allocateUniqueZipEntryName(candidate: string, used: Set<string>): string {
+  if (!candidate) {
+    candidate = 'item.bin';
+  }
+  if (!used.has(candidate)) {
+    used.add(candidate);
+    return candidate;
+  }
+  const lastDot = candidate.lastIndexOf('.');
+  const stem = lastDot > 0 ? candidate.slice(0, lastDot) : candidate;
+  const ext = lastDot > 0 ? candidate.slice(lastDot) : '';
+  let n = 2;
+  for (;;) {
+    const next = `${stem}_${n}${ext}`;
+    if (!used.has(next)) {
+      used.add(next);
+      return next;
+    }
+    n++;
+  }
+}
+
+/** 动态加载 CDN：JSZip + FileSaver */
 let jszipLoading: Promise<any> | null = null;
 let filesaverLoading: Promise<any> | null = null;
 
@@ -463,12 +486,16 @@ export async function exportHandler(
     const blob = new Blob([file.data], { type: mime });
     (window as any).saveAs(blob, file.name);
   } else {
-    // 多个文件：打包为 ZIP
-    const toZip = files.map(f => ({
-      name: f.name,
-      data: f.data,
-      type: getMimeType(f.name)
-    }));
+    // ZIP 内需唯一路径：JSZip 同路径会覆盖，故对重复文件名自动追加序号尾缀
+    const zipUsedNames = new Set<string>();
+    const toZip = files.map((f) => {
+      const unique = allocateUniqueZipEntryName(f.name, zipUsedNames);
+      return {
+        name: unique,
+        data: f.data,
+        type: getMimeType(unique)
+      };
+    });
     // 压缩包名：直接使用 PageNode 的 name
     const packBase = currentPageName ? safeNodeFileName(currentPageName) : 'export';
     await zipAndSave(toZip, `${packBase}.zip`);
