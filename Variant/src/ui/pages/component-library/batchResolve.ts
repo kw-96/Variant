@@ -21,3 +21,15 @@ export function matchCatalogLineToGroups(
 
   return inLib.filter((g) => descriptionFirstSegment(g.description) === trimmed);
 }
+
+/**
+ * 在多个团队库内匹配单行输入。
+ * @param libraryLabels 已选团队库名列表
+ */
+export function matchCatalogLineToMultiLibraryGroups(
+  line: string,
+  libraryLabels: string[],
+  pool: ComponentCatalogGroup[]
+): ComponentCatalogGroup[] {
+  return libraryLabels.flatMap((lib) => matchCatalogLineToGroups(line, lib, pool));
+}
