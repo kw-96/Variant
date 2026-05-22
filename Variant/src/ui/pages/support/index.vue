@@ -127,20 +127,12 @@ const loadError = ref(false);
 
 const componentList = ref<ComponentInfo[]>([]);
 
-// 需要显示的关键词（只显示包含这些关键词的内容）
+// 需要显示的关键词（仅匹配团队库名）
 const targetKeywords = ['在线游戏', '新游预约'];
-
-// 需要屏蔽的描述关键词（不显示包含这些关键词的内容）
-const excludedDescriptionKeywords = ['背景', 'LOGO', 'IP', '主题'];
 
 // 检查是否包含目标关键词
 function containsTargetKeyword(text: string): boolean {
   return targetKeywords.some(keyword => text.includes(keyword));
-}
-
-// 检查是否包含屏蔽的描述关键词
-function containsExcludedDescriptionKeyword(text: string): boolean {
-  return excludedDescriptionKeywords.some(keyword => text.includes(keyword));
 }
 
 // 按 库名 分组组件
@@ -202,42 +194,15 @@ const tagList = computed<Tag[]>(() => {
   return dynamicTags;
 });
 
-// 筛选分组（只显示包含目标关键词的分组，排除包含屏蔽描述关键词的分组）
+// 筛选分组（只显示包含目标团队库关键词且有描述的分组）
 const filteredGroups = computed(() => {
   return groupedComponentList.value.filter(group => {
-    // 只显示包含目标关键词的分组
-    if (!containsTargetKeyword(group.category) && !containsTargetKeyword(group.description)) {
+    if (!containsTargetKeyword(group.category)) {
       return false;
     }
-    
-    // 排除包含屏蔽描述关键词的分组
-    if (containsExcludedDescriptionKeyword(group.description)) {
-      return false;
-    }
-    
-    // 如果分组描述为空（"无描述"），检查该分组中的组件是否可能是被屏蔽组件集的内部组件
-    // 如果该分组中的所有组件都是COMPONENT类型且描述为空，且category包含目标关键词，
-    // 则可能是某个被屏蔽组件集的内部组件，应该隐藏
     if (!group.description || group.description.trim() === '') {
-      // 检查该分组中是否有组件集类型的组件
-      const hasComponentSet = group.components.some(comp => comp.type === 'COMPONENT_SET');
-      // 如果都是普通组件且没有组件集，可能是被屏蔽组件集的内部组件
-      if (!hasComponentSet && group.components.length > 0) {
-        // 检查是否存在同名的组件集（描述包含屏蔽关键词）
-        const hasMatchingComponentSet = componentList.value.some(comp => 
-          comp.type === 'COMPONENT_SET' &&
-          containsExcludedDescriptionKeyword(comp.description) &&
-          containsTargetKeyword(comp.category) &&
-          comp.category === group.category
-        );
-        // 如果存在匹配的组件集，则隐藏该"无描述"分组
-        if (hasMatchingComponentSet) {
-          return false;
-        }
-      }
+      return false;
     }
-    
-    // 如果没有选中标签，显示所有匹配的分组；否则只显示匹配选中标签的分组
     const tagMatch = !activeTag.value || activeTag.value === '' || group.category === activeTag.value;
     return tagMatch;
   });

@@ -185,7 +185,7 @@ const tagList = computed<Tag[]>(() => {
 // 筛选分组
 const filteredGroups = computed(() => {
   return groupedComponentList.value.filter((group) => {
-    if (shouldExcludeBrowseGroup(group, componentList.value)) {
+    if (shouldExcludeBrowseGroup(group)) {
       return false;
     }
 

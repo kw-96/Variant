@@ -93,7 +93,7 @@ const isImporting = ref(false);
 const groupedAll = computed(() => buildComponentCatalogGroups(props.rows));
 
 const visibleGroups = computed(() =>
-  groupedAll.value.filter((g) => !shouldExcludeBrowseGroup(g, props.rows))
+  groupedAll.value.filter((g) => !shouldExcludeBrowseGroup(g))
 );
 
 const libraryOptions = computed(() => {
