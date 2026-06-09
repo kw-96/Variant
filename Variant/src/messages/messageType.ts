@@ -72,6 +72,7 @@ export enum MessageType {
   BATCH_SWITCH_INSTANCES_GET = 'batchSwitchInstancesGet',
   BATCH_SWITCH_INSTANCES_DATA = 'batchSwitchInstancesData',
   BATCH_SWITCH_INSTANCES_APPLY = 'batchSwitchInstancesApply',
+  BATCH_SWITCH_INSTANCES_DELETE = 'batchSwitchInstancesDelete',
   BATCH_SWITCH_INSTANCES_RESULT = 'batchSwitchInstancesResult',
 
   // 鉴权链路（仅权限检测）

@@ -38,15 +38,13 @@
         <div :class="$style.label">
           批量列表
         </div>
-        <van-field
-          v-model="linesText"
-          type="textarea"
-          rows="5"
-          :autosize="{ minHeight: 72, maxHeight: 120 }"
-          :placeholder="'每行一个资源位，回车分隔\n仅输入序号时，不可选择多渠道导入'"
-          :border="false"
-          :class="$style.textArea"
-        />
+        <div :class="$style.textAreaWrap">
+          <textarea
+            v-model="linesText"
+            :class="$style.textArea"
+            :placeholder="'每行一个资源位，回车分隔\n仅输入序号时，不可选择多渠道导入'"
+          />
+        </div>
       </div>
 
       <van-button
@@ -71,7 +69,7 @@ import { compareAlphanumeric } from '../../utils/common';
 import { matchCatalogLineToMultiLibraryGroups } from './batchResolve';
 import { containsCatalogHiddenKeyword, shouldExcludeBrowseGroup } from './catalogFilters';
 import type { ComponentCatalogGroup, ComponentCatalogRow } from './catalogGroup';
-import { buildComponentCatalogGroups, descriptionFirstSegment } from './catalogGroup';
+import { buildComponentCatalogGroups, catalogTextEquals, descriptionFirstSegment, isCatalogLibraryMatch } from './catalogGroup';
 
 const props = defineProps<{
   /** 与列表页同源的团队库扁平数据 */
@@ -208,9 +206,9 @@ function hasSequenceOnlyInput(pool: ComponentCatalogGroup[]) {
   return trimmedLines.value.some((line) =>
     pool.some(
       (g) =>
-        (selected.includes(g.category) || selected.includes(g.libraryName)) &&
-        g.description.trim() !== line &&
-        descriptionFirstSegment(g.description) === line
+        selected.some((lib) => isCatalogLibraryMatch(g.category, g.libraryName, lib)) &&
+        !catalogTextEquals(g.description, line) &&
+        catalogTextEquals(descriptionFirstSegment(g.description), line)
     )
   );
 }
@@ -251,13 +249,18 @@ function hasSequenceOnlyInput(pool: ComponentCatalogGroup[]) {
 
 .container {
   flex: 1;
-  overflow-y: auto;
+  min-height: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 14px;
   padding: 12px;
   box-sizing: border-box;
   background-color: var(--bg-secondary);
+}
+
+.container > .fieldBlock:first-child {
+  flex-shrink: 0;
 }
 
 .fieldBlock {
@@ -269,9 +272,11 @@ function hasSequenceOnlyInput(pool: ComponentCatalogGroup[]) {
 .batchListField {
   flex: 1 1 auto;
   min-height: 0;
+  overflow: hidden;
 }
 
 .label {
+  flex-shrink: 0;
   font-size: 13px;
   color: var(--text-secondary);
 }
@@ -340,17 +345,35 @@ function hasSequenceOnlyInput(pool: ComponentCatalogGroup[]) {
   accent-color: var(--theme-color);
 }
 
-.textArea {
+.textAreaWrap {
   flex: 1 1 auto;
   min-height: 0;
-  background: var(--bg-primary);
-  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
   border: 1px solid var(--divider-color);
+  border-radius: 8px;
+  background: var(--bg-primary);
 }
 
-.textArea :deep(textarea.van-field__control) {
+.textArea {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 8px 12px;
+  border: none;
+  outline: none;
+  resize: none;
   box-sizing: border-box;
   line-height: 1.45;
+  font-size: 14px;
+  color: var(--text-primary);
+  background: transparent;
+  overflow-y: auto;
+}
+
+.textArea::placeholder {
+  color: var(--text-secondary);
 }
 
 .importBtn {

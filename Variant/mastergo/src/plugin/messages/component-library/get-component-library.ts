@@ -39,7 +39,7 @@ async function handler() {
         if (!lib) continue;
         
         // 防御性获取库名
-        const libName = lib.name ? String(lib.name) : '未命名库';
+        const libName = lib.name ? String(lib.name).trim() : '未命名库';
         
         if (lib.componentList && Array.isArray(lib.componentList) && lib.componentList.length > 0) {
             lib.componentList.forEach((comp: any) => {
@@ -47,9 +47,9 @@ async function handler() {
 
                 allComponents.push({
                     id: comp.id ? String(comp.id) : '',
-                    name: comp.name ? String(comp.name) : '未命名组件',
+                    name: comp.name ? String(comp.name).trim() : '未命名组件',
                     ukey: comp.ukey ? String(comp.ukey) : '',
-                    description: comp.description ? String(comp.description) : '',
+                    description: comp.description ? String(comp.description).trim() : '',
                     type: comp.type || 'COMPONENT',
                     cover: comp.cover ? String(comp.cover) : '',
                     width: Number(comp.width) || 0,

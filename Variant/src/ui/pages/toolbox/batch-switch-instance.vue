@@ -12,7 +12,7 @@
       <van-loading v-if="loading" type="spinner" vertical>读取中...</van-loading>
       <div v-else-if="message" :class="$style.empty">{{ message }}</div>
       <div v-else-if="instances.length === 0" :class="$style.empty">
-        当前选择内没有可切换的直接子实例
+        所选容器下没有可切换的实例
       </div>
       <div v-else :class="$style.list">
         <div v-for="item in instances" :key="item.name" :class="$style.row">
@@ -23,6 +23,16 @@
               {{ comp.name }}
             </option>
           </select>
+          <button
+            type="button"
+            :class="$style.deleteBtn"
+            :disabled="!!deletingName || switching"
+            :title="`删除 ${item.name}`"
+            @click="handleDelete(item.name)"
+          >
+            <van-loading v-if="deletingName === item.name" size="16" />
+            <span v-else>删除</span>
+          </button>
         </div>
       </div>
     </div>
@@ -42,63 +52,23 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
-import { MessageType, addMessageListener, sendMsgToPlugin } from '../../../messages';
-
-interface OptionItem {
-  id: string;
-  name: string;
-}
+import { useBatchSwitchInstance } from './useBatchSwitchInstance';
 
 const emit = defineEmits<{ (e: 'back'): void }>();
 
-const loading = ref(false);
-const switching = ref(false);
-const message = ref('');
-const instances = ref<{ name: string }[]>([]);
-const components = ref<OptionItem[]>([]);
-const selectedMap = reactive<Record<string, string>>({});
-let removeDataListener: (() => void) | null = null;
-let removeResultListener: (() => void) | null = null;
-
-const canSwitch = computed(() => {
-  return !loading.value && !switching.value && Object.values(selectedMap).some(Boolean);
-});
-
-onMounted(() => {
-  removeDataListener = addMessageListener(MessageType.BATCH_SWITCH_INSTANCES_DATA, (data: any) => {
-    loading.value = false;
-    message.value = data?.message || '';
-    instances.value = Array.isArray(data?.instances) ? data.instances : [];
-    components.value = Array.isArray(data?.components) ? data.components : [];
-    Object.keys(selectedMap).forEach((key) => delete selectedMap[key]);
-    instances.value.forEach((item) => { selectedMap[item.name] = ''; });
-  });
-  removeResultListener = addMessageListener(MessageType.BATCH_SWITCH_INSTANCES_RESULT, () => {
-    switching.value = false;
-    requestData();
-  });
-  requestData();
-});
-
-onUnmounted(() => {
-  removeDataListener?.();
-  removeResultListener?.();
-});
-
-function requestData() {
-  loading.value = true;
-  sendMsgToPlugin(MessageType.BATCH_SWITCH_INSTANCES_GET);
-}
-
-function handleSwitch() {
-  const pairs = Object.entries(selectedMap)
-    .filter(([, componentId]) => !!componentId)
-    .map(([instanceName, componentId]) => ({ instanceName, componentId }));
-  if (pairs.length === 0) return;
-  switching.value = true;
-  sendMsgToPlugin(MessageType.BATCH_SWITCH_INSTANCES_APPLY, { pairs });
-}
+const {
+  loading,
+  switching,
+  deletingName,
+  message,
+  instances,
+  components,
+  selectedMap,
+  canSwitch,
+  requestData,
+  handleSwitch,
+  handleDelete
+} = useBatchSwitchInstance();
 </script>
 
 <style lang="less" module>
@@ -150,7 +120,7 @@ function handleSwitch() {
 .row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   padding: 10px;
   border: 1px solid var(--divider-color);
   border-radius: 8px;
@@ -167,8 +137,27 @@ function handleSwitch() {
 }
 
 .select {
-  width: 48%;
+  width: 38%;
+  min-width: 96px;
   height: 32px;
+}
+
+.deleteBtn {
+  flex-shrink: 0;
+  min-width: 44px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid #ee0a24;
+  border-radius: 6px;
+  background: transparent;
+  color: #ee0a24;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.deleteBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .empty {

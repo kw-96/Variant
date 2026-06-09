@@ -1,5 +1,10 @@
 import type { ComponentCatalogGroup } from './catalogGroup';
-import { descriptionFirstSegment } from './catalogGroup';
+import {
+  catalogTextEquals,
+  descriptionFirstSegment,
+  isCatalogLibraryMatch,
+  normalizeCatalogText
+} from './catalogGroup';
 
 /**
  * 将单行输入映射到符合条件的分组（先整描述精确匹配，再退化为「首段序号」）。
@@ -11,15 +16,17 @@ export function matchCatalogLineToGroups(
   libraryLabel: string,
   pool: ComponentCatalogGroup[]
 ): ComponentCatalogGroup[] {
-  const inLib = pool.filter(
-    (g) => g.category === libraryLabel || g.libraryName === libraryLabel
+  const inLib = pool.filter((g) =>
+    isCatalogLibraryMatch(g.category, g.libraryName, libraryLabel)
   );
-  const trimmed = line.trim();
+  const normalizedLine = normalizeCatalogText(line);
 
-  const byFull = inLib.filter((g) => g.description.trim() === trimmed);
+  const byFull = inLib.filter((g) => catalogTextEquals(g.description, normalizedLine));
   if (byFull.length > 0) return byFull;
 
-  return inLib.filter((g) => descriptionFirstSegment(g.description) === trimmed);
+  return inLib.filter((g) =>
+    catalogTextEquals(descriptionFirstSegment(g.description), normalizedLine)
+  );
 }
 
 /**
