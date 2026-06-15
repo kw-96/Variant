@@ -16,26 +16,18 @@ interface ComponentInfo {
 async function handler() {
   try {
 
-    const teamLibraries = await mg.getTeamLibraryAsync();
-    const resourceLibraries = (Array.isArray(teamLibraries) ? teamLibraries : []).filter((lib: any) => {
-      const libName = String(lib?.name || '');
-      return libName.indexOf('资源位') >= 0;
-    });
+    const rawLibraries = await mg.getTeamLibraryAsync();
+    const teamLibraries = Array.isArray(rawLibraries) ? rawLibraries : [];
 
-    if (!teamLibraries || !Array.isArray(teamLibraries) || teamLibraries.length === 0) {
+    if (teamLibraries.length === 0) {
       sendMsgToUI(MessageType.SHOW_NOTIFY, { message: '未订阅任何团队库', timeout: 2000 });
-      sendMsgToUI(MessageType.GET_COMPONENT_LIBRARY, { components: [] }); // 发送空列表
-      return;
-    }
-    if (resourceLibraries.length === 0) {
-      sendMsgToUI(MessageType.SHOW_NOTIFY, { message: '未找到名称包含“资源位”的团队库', timeout: 2500 });
       sendMsgToUI(MessageType.GET_COMPONENT_LIBRARY, { components: [] });
       return;
     }
 
     const allComponents: ComponentInfo[] = [];
     
-    for (const lib of resourceLibraries) {
+    for (const lib of teamLibraries) {
         if (!lib) continue;
         
         // 防御性获取库名
@@ -80,4 +72,3 @@ export default {
   type: MessageType.GET_COMPONENT_LIBRARY,
   handler,
 };
-
