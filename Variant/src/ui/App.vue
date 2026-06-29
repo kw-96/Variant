@@ -66,10 +66,22 @@
           </van-tab>
         </van-tabs>
       </template>
-      <!-- 无子标签时直接显示内容 -->
+      <!-- 无子 Tab：离开页面时卸载，避免隐藏态仍占用 DOM / 遮罩拦截点击 -->
       <template v-else>
         <div :class="$style.singleContent">
-          <component :is="currentSinglePage" />
+          <div
+            v-if="componentLibraryMounted"
+            v-show="activeNav === SINGLE_PAGE_NAV.componentLibrary"
+            :class="$style.singlePageLayer"
+          >
+            <ComponentLibrary />
+          </div>
+          <div
+            v-if="activeNav === SINGLE_PAGE_NAV.toolbox"
+            :class="$style.singlePageLayer"
+          >
+            <Toolbox />
+          </div>
         </div>
       </template>
       </div>
@@ -107,7 +119,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, watch, nextTick, onMounted } from 'vue';
+import { ref, computed, watch, nextTick, onMounted, provide } from 'vue';
 import { providePopup } from './hooks/usePopup';
 import Cut from './pages/cut/index.vue';
 import ButtonSizeExpansion from './pages/button-size-expansion/index.vue';
@@ -118,6 +130,7 @@ import ExportChannel from './pages/export-channel/index.vue';
 import Support from './pages/support/index.vue';
 import Toolbox from './pages/toolbox/index.vue';
 import ComponentLibrary from './pages/component-library/index.vue';
+import useComponentCatalogStore from './store/useComponentCatalogStore';
 import { MessageType, addMessageListener, sendMsgToPlugin } from '../messages';
 import useGlobalStore from './store/useGlobalStore';
 import PluginAccessDenied from './auth/PluginAccessDenied.vue';
@@ -195,17 +208,31 @@ const navList = [
   },
 ];
 
+/** 无子 Tab 的单页主导航索引 */
+const SINGLE_PAGE_NAV = {
+  componentLibrary: 3,
+  toolbox: 4
+} as const;
+
+/** 首次进入组件库后保活实例，避免二次挂载全量 DOM */
+const componentLibraryMounted = ref(false);
+
+watch(
+  activeNav,
+  (idx) => {
+    if (idx === SINGLE_PAGE_NAV.componentLibrary) {
+      componentLibraryMounted.value = true;
+    }
+  },
+  { immediate: true }
+);
+
+provide('activeMainNav', activeNav);
+provide('componentLibraryNavIndex', SINGLE_PAGE_NAV.componentLibrary);
+
 // 根据当前导航获取对应的页面列表
 const currentPageList = computed(() => {
   return navList[activeNav.value].pages || [];
-});
-
-// 当没有子标签时显示的单页组件
-const currentSinglePage = computed(() => {
-  const currentNav = navList[activeNav.value];
-  if (currentNav.name === '组件库') return ComponentLibrary;
-  if (currentNav.name === '工具箱') return Toolbox;
-  return null;
 });
 
 // 监听页面内标签切换事件
@@ -276,6 +303,12 @@ async function autoCheckAccess() {
     console.warn(message);
   }
 }
+
+watch(hasEnteredWorkspace, (ok) => {
+  if (ok) {
+    useComponentCatalogStore().initListener();
+  }
+});
 
 onMounted(() => {
   autoCheckAccess();
@@ -481,7 +514,15 @@ addMessageListener(MessageType.WINDOW_STATE_CHANGED, (data: { collapsed: boolean
 
 .singleContent {
   flex: 1;
-  overflow-y: auto;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.singlePageLayer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
 }
 
 .titleBar {

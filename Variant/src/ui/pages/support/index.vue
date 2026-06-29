@@ -85,10 +85,17 @@
   </div>
 </template>
 
+<script lang="ts">
+export default {
+  name: 'SupportPage'
+};
+</script>
+
 <script lang="ts" setup>
 import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { MessageType, addMessageListener, sendMsgToPlugin } from '../../../messages';
 import { compareAlphanumeric } from '../../utils/common';
+import { useComponentCatalog } from '../../hooks/useComponentCatalog';
 
 interface ComponentInfo {
   id: string;
@@ -118,14 +125,11 @@ interface Tag {
 }
 
 const showDropdown = ref(false);
-const activeTag = ref(''); // 初始为空，不选中任何标签
-const selectedGroupKeys = ref<string[]>([]); // 存储选中的分组Key
-const isLoading = ref(true);
-const loadingText = ref('加载组件库中...');
+const activeTag = ref('');
+const selectedGroupKeys = ref<string[]>([]);
 const isImporting = ref(false);
-const loadError = ref(false);
 
-const componentList = ref<ComponentInfo[]>([]);
+const { componentList, isLoading, loadingText, loadError } = useComponentCatalog();
 
 // 需要显示的关键词（仅匹配团队库名）
 const targetKeywords = ['在线游戏', '新游预约'];
@@ -296,62 +300,17 @@ function handleImport() {
 }
 
 // 消息监听清理函数
-let removeListener: (() => void) | null = null;
 let importCompleteListener: (() => void) | null = null;
-let loadTimeout: any = null;
 
 onMounted(() => {
-  isLoading.value = true;
-  loadingText.value = '加载组件库中...';
-  loadError.value = false;
-  
-  // 注册消息监听
-  removeListener = addMessageListener(MessageType.GET_COMPONENT_LIBRARY, (data: any) => {
-    // 修复：解析插件返回的数据结构 { components: [...] }
-    if (data && Array.isArray(data.components)) {
-      componentList.value = data.components;
-    } else if (Array.isArray(data)) {
-      // 兼容直接返回数组的情况
-      componentList.value = data;
-    } else {
-      componentList.value = [];
-    }
-
-    isLoading.value = false;
-    if (loadTimeout) {
-      clearTimeout(loadTimeout);
-      loadTimeout = null;
-    }
-  });
-
-  // 监听导入完成消息
   importCompleteListener = addMessageListener(MessageType.IMPORT_COMPONENT_COMPLETE, () => {
     isImporting.value = false;
-    selectedGroupKeys.value = []; // 清空选择
+    selectedGroupKeys.value = [];
   });
-
-  // 请求组件数据
-  sendMsgToPlugin(MessageType.GET_COMPONENT_LIBRARY);
-  
-  // 设置超时保护 (3秒)
-  loadTimeout = setTimeout(() => {
-    if (isLoading.value) {
-      isLoading.value = false;
-      loadError.value = true;
-    }
-  }, 3000);
 });
 
 onUnmounted(() => {
-  if (removeListener) {
-    removeListener();
-  }
-  if (importCompleteListener) {
-    importCompleteListener();
-  }
-  if (loadTimeout) {
-    clearTimeout(loadTimeout);
-  }
+  importCompleteListener?.();
 });
 </script>
 

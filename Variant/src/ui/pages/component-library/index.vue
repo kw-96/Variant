@@ -1,4 +1,5 @@
 <template>
+  <div :class="$style.pageRoot">
   <div :class="$style.container">
     <div :class="$style.searchBarRow">
       <div :class="$style.searchGrow">
@@ -23,7 +24,7 @@
     </div>
 
     <!-- 动态标签栏 (定高隐藏 + 下拉框) -->
-    <div :class="$style.tagSection">
+    <div :class="[$style.tagSection, showDropdown && $style.tagSectionElevated]">
       <!-- 常驻显示的标签栏 (限制高度，溢出隐藏) -->
       <div :class="$style.tagBar">
         <div :class="$style.tagList">
@@ -43,7 +44,7 @@
       </div>
 
       <!-- 下拉框 (显示所有标签) -->
-      <div v-if="showDropdown" :class="$style.dropdown">
+      <div v-if="showDropdown" :class="$style.dropdown" @click.stop>
         <div :class="$style.dropdownContent">
           <div
             v-for="tag in tagList"
@@ -55,41 +56,15 @@
           </div>
         </div>
       </div>
-      <!-- 遮罩层 (点击关闭下拉框) -->
-      <div v-if="showDropdown" :class="$style.mask" @click="showDropdown = false"></div>
     </div>
 
-    <!-- 组件分组列表 -->
-    <div :class="$style.listWrapper">
-      <van-loading v-if="isLoading" type="spinner" vertical color="#1989fa">
-        {{ loadingText }}
-      </van-loading>
-      
-      <template v-else>
-        <van-checkbox-group v-model="selectedGroupKeys">
-          <div
-            v-for="group in filteredGroups"
-            :key="group.key"
-            :class="$style.card"
-          >
-            <div :class="$style.cardHeader">
-              <van-checkbox
-                :name="group.key"
-                shape="square"
-              >
-                {{ group.description || '无描述' }}
-              </van-checkbox>
-            </div>
-            <div :class="$style.cardFooter">
-               <span :class="$style.libraryName">{{ group.libraryName }}</span>
-            </div>
-          </div>
-        </van-checkbox-group>
-        <div v-if="filteredGroups.length === 0" :class="$style.empty">
-          {{ getEmptyText() }}
-        </div>
-      </template>
-    </div>
+    <CatalogGroupList
+      v-model:selected-keys="selectedGroupKeys"
+      :groups="filteredGroups"
+      :loading="isLoading"
+      :loading-text="loadingText"
+      :empty-text="getEmptyText()"
+    />
 
     <!-- 导入按钮 -->
     <div :class="$style.actionBar">
@@ -104,12 +79,14 @@
         立即导入
       </van-button>
     </div>
+    <div v-if="showDropdown" :class="$style.dropdownOverlay" @click="showDropdown = false"></div>
   </div>
 
   <van-popup
     v-model:show="showBatchImportPopup"
     position="center"
     round
+    :teleport="false"
     :close-on-click-overlay="true"
     :style="{
       width: 'calc(100vw - 32px)',
@@ -131,16 +108,24 @@
       @close="showBatchImportPopup = false"
     />
   </van-popup>
+  </div>
 </template>
 
+<script lang="ts">
+export default {
+  name: 'ComponentLibrary'
+};
+</script>
+
 <script lang="ts" setup>
-import { computed, ref, onMounted, onUnmounted } from 'vue';
+import { computed, ref, onMounted, onBeforeUnmount, onUnmounted, inject, watch, type Ref } from 'vue';
+import { storeToRefs } from 'pinia';
 import { MessageType, addMessageListener, sendMsgToPlugin } from '../../../messages';
-import { compareAlphanumeric } from '../../utils/common';
-import { containsCatalogHiddenKeyword, shouldExcludeBrowseGroup } from './catalogFilters';
-import type { ComponentCatalogRow } from './catalogGroup';
-import { buildComponentCatalogGroups } from './catalogGroup';
+import { useComponentCatalog } from '../../hooks/useComponentCatalog';
+import useComponentCatalogStore from '../../store/useComponentCatalogStore';
+import { shouldExcludeBrowseGroup } from './catalogFilters';
 import BatchImportPanel from './batch-import.vue';
+import CatalogGroupList from './CatalogGroupList.vue';
 
 interface Tag {
   id: string;
@@ -152,35 +137,36 @@ const showBatchImportPopup = ref(false);
 const searchValue = ref('');
 const showDropdown = ref(false);
 const activeTag = ref('all');
-const selectedGroupKeys = ref<string[]>([]); // 存储选中的分组Key
-const isLoading = ref(true);
-const loadingText = ref('加载组件库中...');
+const selectedGroupKeys = ref<string[]>([]);
 const isImporting = ref(false);
-const loadError = ref(false);
 
-const componentList = ref<ComponentCatalogRow[]>([]);
+const { componentList, isLoading, loadingText, loadError } = useComponentCatalog();
+const catalogStore = useComponentCatalogStore();
+const { groups: groupedComponentList, libraryTags } = storeToRefs(catalogStore);
 
-// 按 库名 + 组件描述分组（顺序与共用工具一致）
-const groupedComponentList = computed(() =>
-  buildComponentCatalogGroups(componentList.value)
+const activeMainNav = inject<Ref<number>>('activeMainNav');
+const componentLibraryNavIndex = inject<number>('componentLibraryNavIndex', 3);
+
+watch(
+  () => activeMainNav?.value,
+  (idx) => {
+    if (idx !== undefined && idx !== componentLibraryNavIndex) {
+      showDropdown.value = false;
+      showBatchImportPopup.value = false;
+    }
+  }
 );
 
-// 动态生成标签列表（基于分组分类/库名）
-const tagList = computed<Tag[]>(() => {
-  const tags = new Set<string>();
-  groupedComponentList.value.forEach((group) => {
-    if (group.category && !containsCatalogHiddenKeyword(group.category)) {
-      tags.add(group.category);
-    }
-  });
-  
-  const dynamicTags = Array.from(tags).sort(compareAlphanumeric).map(tag => ({
-    id: tag,
-    name: tag
-  }));
-
-  return [{ id: 'all', name: '全部' }, ...dynamicTags];
+onBeforeUnmount(() => {
+  showDropdown.value = false;
+  showBatchImportPopup.value = false;
 });
+
+// 动态生成标签列表（标签名已在 store 中预计算）
+const tagList = computed<Tag[]>(() => [
+  { id: 'all', name: '全部' },
+  ...libraryTags.value.map((tag) => ({ id: tag, name: tag }))
+]);
 
 // 筛选分组
 const filteredGroups = computed(() => {
@@ -211,8 +197,12 @@ function handleGoBatchImport() {
 }
 
 function handleTagClick(tagId: string) {
+  if (activeTag.value === tagId) {
+    showDropdown.value = false;
+    return;
+  }
   activeTag.value = tagId;
-  showDropdown.value = false; // 选择后关闭下拉框
+  showDropdown.value = false;
 }
 
 function toggleDropdown() {
@@ -292,68 +282,32 @@ function handleImport() {
 }
 
 // 消息监听清理函数
-let removeListener: (() => void) | null = null;
 let importCompleteListener: (() => void) | null = null;
-let loadTimeout: any = null;
 
 onMounted(() => {
-  isLoading.value = true;
-  loadingText.value = '加载组件库中...';
-  loadError.value = false;
-  
-  // 注册消息监听
-  removeListener = addMessageListener(MessageType.GET_COMPONENT_LIBRARY, (data: any) => {
-    // 修复：解析插件返回的数据结构 { components: [...] }
-    if (data && Array.isArray(data.components)) {
-      componentList.value = data.components;
-    } else if (Array.isArray(data)) {
-      // 兼容直接返回数组的情况
-      componentList.value = data;
-    } else {
-      componentList.value = [];
-    }
-
-    isLoading.value = false;
-    if (loadTimeout) {
-      clearTimeout(loadTimeout);
-      loadTimeout = null;
-    }
-  });
-
-  // 监听导入完成消息
   importCompleteListener = addMessageListener(MessageType.IMPORT_COMPONENT_COMPLETE, () => {
     isImporting.value = false;
-    selectedGroupKeys.value = []; // 清空选择
+    selectedGroupKeys.value = [];
   });
-
-  // 请求组件数据
-  sendMsgToPlugin(MessageType.GET_COMPONENT_LIBRARY);
-  
-  // 设置超时保护 (3秒)
-  loadTimeout = setTimeout(() => {
-    if (isLoading.value) {
-      isLoading.value = false;
-      loadError.value = true;
-    }
-  }, 3000);
 });
 
 onUnmounted(() => {
-  if (removeListener) {
-    removeListener();
-  }
-  if (importCompleteListener) {
-    importCompleteListener();
-  }
-  if (loadTimeout) {
-    clearTimeout(loadTimeout);
-  }
+  importCompleteListener?.();
 });
 </script>
 
 <style lang="less" module>
-.container {
+.pageRoot {
   height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.container {
+  flex: 1;
+  min-height: 0;
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -397,8 +351,12 @@ onUnmounted(() => {
 }
 
 .tagSection {
-  position: relative; /* 为下拉框定位 */
+  position: relative;
   z-index: 10;
+}
+
+.tagSectionElevated {
+  z-index: 110;
 }
 
 .tagBar {
@@ -491,72 +449,11 @@ onUnmounted(() => {
   gap: 12px 16px;
 }
 
-/* 遮罩层 */
-.mask {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 90; /* 在下拉框之下 */
-  background: transparent; /* 透明遮罩，仅用于点击关闭 */
-}
-
-.listWrapper {
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-right: 4px; /* 滚动条空间 */
-}
-
-.card {
-  border: 1px solid var(--divider-color);
-  border-radius: 8px;
-  padding: 12px;
-  background: var(--bg-primary);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  transition: all 0.2s;
-  
-  &:hover {
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-  }
-}
-
-.cardHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  /* Ensure checkbox text handles long descriptions gracefully */
-  :global(.van-checkbox__label) {
-      flex: 1;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      margin-right: 8px;
-      color: var(--text-primary);
-      font-size: 13px;
-  }
-}
-
-.cardFooter {
-    display: flex;
-    justify-content: flex-end;
-}
-
-.libraryName {
-    font-size: 10px;
-    color: var(--text-disabled);
-}
-
-.empty {
-  text-align: center;
-  color: var(--text-secondary);
-  padding: 24px 0;
-  font-size: 14px;
+.dropdownOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 80;
+  background: transparent;
 }
 
 .actionBar {

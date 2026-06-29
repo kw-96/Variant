@@ -244,10 +244,8 @@ try {
     }
   };
 
-  // 监听菜单命令事件 - MasterGo 可能使用 'run' 或 'menuaction' 事件
-  // 同时监听两个事件以确保兼容性
+  // 监听菜单命令（MasterGo 官方支持 run 事件）
   mg.on('run', handleMenuCommand);
-  mg.on('menuaction', handleMenuCommand);
 
   // 监听主题变化事件
   mg.on('themechange', (theme: string) => {

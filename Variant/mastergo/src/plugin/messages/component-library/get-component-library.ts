@@ -1,74 +1,66 @@
 import { MessageType, sendMsgToUI } from '../../../../../src/messages';
+import {
+  getCachedCatalog,
+  hasBackgroundRefreshDone,
+  isCatalogRefreshing,
+  markBackgroundRefreshDone,
+  refreshCatalogCache,
+  setCatalogRefreshing
+} from './catalog-loader';
 
-interface ComponentInfo {
-  id: string;
-  name: string;
-  ukey: string;
-  description: string;
-  type: "COMPONENT" | "COMPONENT_SET";
-  cover: string;
-  width: number;
-  height: number;
-  libraryName: string;
-  category: string; // 分类字段
+function sendCatalogPayload(components: unknown[], fromCache: boolean) {
+  sendMsgToUI(MessageType.GET_COMPONENT_LIBRARY, { components, fromCache });
 }
 
-async function handler() {
+async function refreshInBackground() {
+  if (isCatalogRefreshing()) return;
+  setCatalogRefreshing(true);
   try {
-
-    const rawLibraries = await mg.getTeamLibraryAsync();
-    const teamLibraries = Array.isArray(rawLibraries) ? rawLibraries : [];
-
-    if (teamLibraries.length === 0) {
-      sendMsgToUI(MessageType.SHOW_NOTIFY, { message: '未订阅任何团队库', timeout: 2000 });
-      sendMsgToUI(MessageType.GET_COMPONENT_LIBRARY, { components: [] });
-      return;
+    const components = await refreshCatalogCache();
+    sendCatalogPayload(components, false);
+  } catch (error: unknown) {
+    const cached = getCachedCatalog();
+    if (!cached) {
+      const errorMsg = error instanceof Error ? error.message : '未知错误';
+      sendMsgToUI(MessageType.SHOW_NOTIFY, {
+        message: `获取组件列表失败: ${errorMsg}`,
+        timeout: 3000
+      });
+      sendCatalogPayload([], false);
     }
+  } finally {
+    setCatalogRefreshing(false);
+  }
+}
 
-    const allComponents: ComponentInfo[] = [];
-    
-    for (const lib of teamLibraries) {
-        if (!lib) continue;
-        
-        // 防御性获取库名
-        const libName = lib.name ? String(lib.name).trim() : '未命名库';
-        
-        if (lib.componentList && Array.isArray(lib.componentList) && lib.componentList.length > 0) {
-            lib.componentList.forEach((comp: any) => {
-                if (!comp) return;
+async function handler(data?: { backgroundRefresh?: boolean }) {
+  const cached = getCachedCatalog();
+  const shouldRefresh = data?.backgroundRefresh !== false;
 
-                allComponents.push({
-                    id: comp.id ? String(comp.id) : '',
-                    name: comp.name ? String(comp.name).trim() : '未命名组件',
-                    ukey: comp.ukey ? String(comp.ukey) : '',
-                    description: comp.description ? String(comp.description).trim() : '',
-                    type: comp.type || 'COMPONENT',
-                    cover: comp.cover ? String(comp.cover) : '',
-                    width: Number(comp.width) || 0,
-                    height: Number(comp.height) || 0,
-                    libraryName: libName,
-                    category: libName, // 确保使用字符串库名
-                });
-            });
-        }
+  if (cached) {
+    sendCatalogPayload(cached, true);
+    if (shouldRefresh && !hasBackgroundRefreshDone()) {
+      markBackgroundRefreshDone();
+      void refreshInBackground();
     }
-    
-    if (allComponents.length === 0) {
-      sendMsgToUI(MessageType.SHOW_NOTIFY, { message: '团队库中暂无组件', timeout: 2000 });
-      sendMsgToUI(MessageType.GET_COMPONENT_LIBRARY, { components: [] }); 
-      return;
-    }
+    return;
+  }
 
-    sendMsgToUI(MessageType.GET_COMPONENT_LIBRARY, { components: allComponents });
-    
-  } catch (error: any) {
-    const errorMsg = error?.message || '未知错误';
+  try {
+    const components = await refreshCatalogCache();
+    markBackgroundRefreshDone();
+    if (components.length === 0) {
+      sendMsgToUI(MessageType.SHOW_NOTIFY, { message: '未订阅任何团队库或库内暂无组件', timeout: 2000 });
+    }
+    sendCatalogPayload(components, false);
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : '未知错误';
     sendMsgToUI(MessageType.SHOW_NOTIFY, { message: `获取组件列表失败: ${errorMsg}`, timeout: 3000 });
-    sendMsgToUI(MessageType.GET_COMPONENT_LIBRARY, { components: [] }); // 确保发送空列表以关闭 loading
+    sendCatalogPayload([], false);
   }
 }
 
 export default {
   type: MessageType.GET_COMPONENT_LIBRARY,
-  handler,
+  handler
 };
