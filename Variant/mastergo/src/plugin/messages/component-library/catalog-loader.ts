@@ -1,3 +1,5 @@
+import { isCatalogLibraryBlocked } from '../../../../../src/component-library/blocklist';
+
 export interface ComponentCatalogItem {
   id: string;
   name: string;
@@ -48,6 +50,7 @@ export async function refreshCatalogCache(): Promise<ComponentCatalogItem[]> {
   for (const lib of teamLibraries) {
     if (!lib) continue;
     const libName = lib.name ? String(lib.name).trim() : '未命名库';
+    if (isCatalogLibraryBlocked(libName)) continue;
     if (!lib.componentList || !Array.isArray(lib.componentList)) continue;
 
     lib.componentList.forEach((comp: any) => {

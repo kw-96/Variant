@@ -2,11 +2,16 @@
  * 组件库浏览与批量导入共用的屏蔽规则。
  */
 
+import { isCatalogLibraryBlocked } from '../../../component-library/blocklist';
+
 /** 需整体屏蔽的团队库（分类）关键词，不作用于组件描述 */
 export const COMPONENT_LIBRARY_HIDDEN_KEYWORDS = ['在线游戏', '新游预约'] as const;
 
-/** 团队库名是否命中整体屏蔽关键词 */
+/** 团队库名是否命中整体屏蔽关键词或强制屏蔽名单 */
 export function containsCatalogHiddenKeyword(libraryLabel: string): boolean {
+  if (isCatalogLibraryBlocked(libraryLabel)) {
+    return true;
+  }
   return COMPONENT_LIBRARY_HIDDEN_KEYWORDS.some((keyword) => libraryLabel.includes(keyword));
 }
 
