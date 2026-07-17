@@ -53,8 +53,8 @@ export async function importRequiredComponentSet(
 
     const viewportCenter = mg.viewport.center;
     const gap = typeof layout?.gap === 'number' ? layout.gap : 20;
-    let x = typeof layout?.x === 'number' ? layout.x : viewportCenter.x;
-    const y = typeof layout?.y === 'number' ? layout.y : viewportCenter.y;
+    let x = Math.round(typeof layout?.x === 'number' ? layout.x : viewportCenter.x);
+    const y = Math.round(typeof layout?.y === 'number' ? layout.y : viewportCenter.y);
 
     // 子组件排序：先横后竖（以“值”命名判断）
     const items = children
@@ -134,7 +134,7 @@ export async function importRequiredComponentSet(
         maxHeight = Math.max(maxHeight, componentHeight);
 
         createdCount += 1;
-        x += (Number(component.width) || 0) + gap;
+        x = Math.round(x + (Number(component.width) || 0) + gap);
       } catch (e) {
         // 静默处理单个组件创建失败，继续处理其他组件
       }
@@ -148,7 +148,7 @@ export async function importRequiredComponentSet(
       };
     }
 
-    return { success: true, componentSet: componentSetNode, endX: x, maxHeight, components };
+    return { success: true, componentSet: componentSetNode, endX: Math.round(x), maxHeight, components };
   } catch (error: any) {
     const errorMsg = error?.message || String(error) || '未知错误';
     return { success: false, componentSet: null, error: `导入组件集失败: ${errorMsg}` };

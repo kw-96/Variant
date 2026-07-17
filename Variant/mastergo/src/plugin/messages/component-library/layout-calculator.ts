@@ -187,12 +187,12 @@ export function arrangeComponentLayout(
     columnWidths.reduce((sum, width) => sum + width, 0) +
     config.groupSpacing * (columnCount - 1);
 
-  // 计算每一列的起始X坐标
+  // 计算每一列的起始X坐标（取整，避免视口居中产生小数坐标）
   const columnStartX: number[] = [];
-  let accumulatedX = viewportCenter.x - totalRowWidth / 2;
+  let accumulatedX = Math.round(viewportCenter.x - totalRowWidth / 2);
   columnWidths.forEach((width, idx) => {
     columnStartX[idx] = accumulatedX;
-    accumulatedX += width + config.groupSpacing;
+    accumulatedX += Math.round(width) + config.groupSpacing;
   });
 
   // 计算每一行的高度
@@ -205,7 +205,7 @@ export function arrangeComponentLayout(
     rowHeights.reduce((sum, height) => sum + height, 0) +
     config.rowSpacing * (rows.length - 1);
 
-  let currentY = viewportCenter.y - totalHeight / 2;
+  let currentY = Math.round(viewportCenter.y - totalHeight / 2);
 
   // 按行排列所有组件
   rows.forEach((row, rowIndex) => {
@@ -217,14 +217,14 @@ export function arrangeComponentLayout(
 
       // 同一描述组内的实例水平排列
       item.group.instances.forEach(inst => {
-        inst.x = groupX;
-        inst.y = currentY; // 同行顶对齐
-        groupX += inst.width + config.instanceSpacing;
+        inst.x = Math.round(groupX);
+        inst.y = Math.round(currentY); // 同行顶对齐
+        groupX += Math.round(inst.width) + config.instanceSpacing;
       });
     });
 
     // 更新Y坐标到下一行
-    currentY += rowHeight;
+    currentY += Math.round(rowHeight);
     if (rowIndex < rows.length - 1) {
       currentY += config.rowSpacing;
     }

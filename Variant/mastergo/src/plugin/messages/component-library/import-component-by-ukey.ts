@@ -342,8 +342,8 @@ async function handler(data: { groups?: Array<{ description: string; ukeys: stri
       }
     });
 
-    let setX = viewportCenter.x;
-    const defaultSetY = viewportCenter.y - 360;
+    let setX = Math.round(viewportCenter.x);
+    const defaultSetY = Math.round(viewportCenter.y - 360);
     for (const desc of REQUIRED_COMPONENT_SET_ORDER) {
       const ukey = requiredMap.get(desc);
       if (!ukey) continue;
@@ -392,15 +392,15 @@ async function handler(data: { groups?: Array<{ description: string; ukeys: stri
   const processResult = processImportedInstances(descriptionGroups, currentPage, viewportCenter, skipConvert);
 
   // 4) 根据首个普通组件的位置，计算必需组件集的位置
-  let requiredSetX = viewportCenter.x; // 默认值
-  let requiredSetY = viewportCenter.y - 360; // 默认值
+  let requiredSetX = Math.round(viewportCenter.x); // 默认值
+  let requiredSetY = Math.round(viewportCenter.y - 360); // 默认值
   let convertedComponentNames: Set<string> | null = null;
   
   if (processResult !== null && typeof processResult === 'object' && 'x' in processResult && 'y' in processResult) {
     // 必需组件集的首个组件放在首个普通组件的正上方，间距 3000
     const componentSetSpacing = 3000;
-    requiredSetX = processResult.x;
-    requiredSetY = processResult.y - componentSetSpacing;
+    requiredSetX = Math.round(processResult.x);
+    requiredSetY = Math.round(processResult.y - componentSetSpacing);
     // 如果是普通导入，获取已转换组件的名称列表
     if ('convertedComponentNames' in processResult && processResult.convertedComponentNames instanceof Set) {
       convertedComponentNames = processResult.convertedComponentNames;
