@@ -126,6 +126,8 @@ import useComponentCatalogStore from '../../store/useComponentCatalogStore';
 import { shouldExcludeBrowseGroup } from './catalogFilters';
 import BatchImportPanel from './batch-import.vue';
 import CatalogGroupList from './CatalogGroupList.vue';
+import { showImportCompleteResult } from './showImportComplete';
+import { buildImportGroupsFromCatalog } from './batchResolve';
 
 interface Tag {
   id: string;
@@ -213,67 +215,19 @@ function handleImport() {
   if (selectedGroupKeys.value.length === 0) return;
   
   isImporting.value = true;
-  
-  // 按描述分组收集组件 ukey
-  const descriptionGroups = new Map<string, string[]>();
-  
-  // 1. 收集用户选中的组件，并记录涉及的团队库
-  const selectedLibraries = new Set<string>();
-  groupedComponentList.value.forEach(group => {
-    if (selectedGroupKeys.value.indexOf(group.key) !== -1) {
-      const description = group.description || '未命名';
-      if (!descriptionGroups.has(description)) {
-        descriptionGroups.set(description, []);
-      }
-      group.components.forEach(comp => {
-        descriptionGroups.get(description)!.push(comp.ukey);
-        // 记录涉及的团队库
-        if (comp.category || comp.libraryName) {
-          selectedLibraries.add(comp.category || comp.libraryName);
-        }
-      });
-    }
-  });
 
-  // 2. 为每个涉及的团队库自动添加"背景"、"LOGO"、"IP"、"主题"描述的组件集
-  // 使用"库名::描述"格式，以便为不同团队库导入不同的必需组件集
-  // 【临时禁用】不自动导入必需组件集
-  /*
-  const addedDescriptions = new Set(descriptionGroups.keys());
-  const requiredDescriptions = ['背景', 'LOGO', 'IP', '主题'];
-  
-  selectedLibraries.forEach(libraryName => {
-    requiredDescriptions.forEach(requiredDesc => {
-      // 使用"库名::描述"格式作为key
-      const libraryDescriptionKey = `${libraryName}::${requiredDesc}`;
-      
-      // 如果该描述还没有被添加，则查找该团队库对应的必需组件集
-      if (!addedDescriptions.has(libraryDescriptionKey)) {
-        const matchedComponent = componentList.value.find(comp => 
-          comp.type === 'COMPONENT_SET' &&
-          comp.description === requiredDesc &&
-          (comp.category === libraryName || comp.libraryName === libraryName)
-        );
-        
-        if (matchedComponent) {
-          if (!descriptionGroups.has(libraryDescriptionKey)) {
-            descriptionGroups.set(libraryDescriptionKey, []);
-          }
-          descriptionGroups.get(libraryDescriptionKey)!.push(matchedComponent.ukey);
-          addedDescriptions.add(libraryDescriptionKey);
-        }
-      }
-    });
-  });
-  */
-
-  // 转换为数组格式：{ description, ukeys }
-  const groups = Array.from(descriptionGroups.entries()).map(([description, ukeys]) => ({
-    description,
-    ukeys
-  }));
+  const selectedGroups = groupedComponentList.value.filter((group) =>
+    selectedGroupKeys.value.indexOf(group.key) !== -1
+  );
+  const groups = buildImportGroupsFromCatalog(selectedGroups);
 
   if (groups.length > 0) {
+    clearImportWatchdog();
+    importWatchdog = setTimeout(() => {
+      if (!isImporting.value) return;
+      isImporting.value = false;
+      alert('导入超时未完成，请缩小批量数量后重试，或检查团队库权限。');
+    }, 120000);
     sendMsgToPlugin(MessageType.IMPORT_COMPONENT_BY_UKEY, { groups });
     // 导入状态将在收到导入完成消息后清除
   } else {
@@ -283,15 +237,29 @@ function handleImport() {
 
 // 消息监听清理函数
 let importCompleteListener: (() => void) | null = null;
+let importWatchdog: ReturnType<typeof setTimeout> | null = null;
+
+function clearImportWatchdog() {
+  if (importWatchdog) {
+    clearTimeout(importWatchdog);
+    importWatchdog = null;
+  }
+}
 
 onMounted(() => {
-  importCompleteListener = addMessageListener(MessageType.IMPORT_COMPONENT_COMPLETE, () => {
+  importCompleteListener = addMessageListener(MessageType.IMPORT_COMPONENT_COMPLETE, (data) => {
+    clearImportWatchdog();
     isImporting.value = false;
     selectedGroupKeys.value = [];
+    // 批量导入弹窗打开时由 BatchImportPanel 负责提示，避免重复弹窗
+    if (!showBatchImportPopup.value) {
+      showImportCompleteResult(data);
+    }
   });
 });
 
 onUnmounted(() => {
+  clearImportWatchdog();
   importCompleteListener?.();
 });
 </script>

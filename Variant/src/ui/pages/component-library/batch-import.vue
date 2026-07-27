@@ -66,10 +66,14 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { MessageType, addMessageListener, sendMsgToPlugin } from '../../../messages';
 import { compareAlphanumeric } from '../../utils/common';
-import { matchCatalogLineToMultiLibraryGroups } from './batchResolve';
+import {
+  buildImportGroupsFromCatalog,
+  matchCatalogLineToMultiLibraryGroups
+} from './batchResolve';
 import { containsCatalogHiddenKeyword, shouldExcludeBrowseGroup } from './catalogFilters';
 import type { ComponentCatalogGroup, ComponentCatalogRow } from './catalogGroup';
 import { buildComponentCatalogGroups, catalogTextEquals, descriptionFirstSegment, isCatalogLibraryMatch } from './catalogGroup';
+import { showImportCompleteResult } from './showImportComplete';
 
 const props = defineProps<{
   /** 与列表页同源的团队库扁平数据 */
@@ -132,14 +136,25 @@ const canImport = computed(
 );
 
 let importDoneListener: (() => void) | null = null;
+let importWatchdog: ReturnType<typeof setTimeout> | null = null;
+
+function clearImportWatchdog() {
+  if (importWatchdog) {
+    clearTimeout(importWatchdog);
+    importWatchdog = null;
+  }
+}
 
 onMounted(() => {
-  importDoneListener = addMessageListener(MessageType.IMPORT_COMPONENT_COMPLETE, () => {
+  importDoneListener = addMessageListener(MessageType.IMPORT_COMPONENT_COMPLETE, (data) => {
+    clearImportWatchdog();
     isImporting.value = false;
+    showImportCompleteResult(data);
   });
 });
 
 onUnmounted(() => {
+  clearImportWatchdog();
   importDoneListener?.();
 });
 
@@ -154,7 +169,8 @@ function handleBatchImport() {
     return;
   }
   const unresolved: string[] = [];
-  const ukeyMap = new Map<string, Set<string>>();
+  const matchedGroups: ComponentCatalogGroup[] = [];
+  const matchedKeys = new Set<string>();
 
   for (const line of trimmedLines.value) {
     const matched = matchCatalogLineToMultiLibraryGroups(
@@ -167,17 +183,9 @@ function handleBatchImport() {
       continue;
     }
     matched.forEach((g) => {
-      const label = g.description || '未命名';
-      const libraryLabel = g.category || g.libraryName || '未命名团队库';
-      const groupKey = `${libraryLabel}::${label}`;
-      let set = ukeyMap.get(groupKey);
-      if (!set) {
-        set = new Set<string>();
-        ukeyMap.set(groupKey, set);
-      }
-      g.components.forEach((c) => {
-        if (c.ukey) set!.add(String(c.ukey));
-      });
+      if (matchedKeys.has(g.key)) return;
+      matchedKeys.add(g.key);
+      matchedGroups.push(g);
     });
   }
 
@@ -187,17 +195,23 @@ function handleBatchImport() {
         ? `${unresolved.slice(0, 8).join('、')} 等`
         : unresolved.join('、');
     alert(`以下行在已选团队库下未匹配到分组：${preview}`);
-    if (!ukeyMap.size) return;
+    if (!matchedGroups.length) return;
   }
 
-  const groups = [...ukeyMap.entries()].map(([description, set]) => ({
-    description,
-    ukeys: [...set]
-  }));
-
-  if (!groups.length) return;
+  const groups = buildImportGroupsFromCatalog(matchedGroups);
+  if (!groups.length) {
+    alert('匹配到的分组中没有可导入的普通组件（已自动跳过组件集）。');
+    return;
+  }
 
   isImporting.value = true;
+  clearImportWatchdog();
+  // 防止宿主长时间无回包导致按钮一直 loading
+  importWatchdog = setTimeout(() => {
+    if (!isImporting.value) return;
+    isImporting.value = false;
+    alert('导入超时未完成，请缩小批量数量后重试，或检查团队库权限。');
+  }, 120000);
   sendMsgToPlugin(MessageType.IMPORT_COMPONENT_BY_UKEY, { groups });
 }
 
