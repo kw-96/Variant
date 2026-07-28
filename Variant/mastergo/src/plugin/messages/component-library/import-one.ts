@@ -6,21 +6,6 @@ export interface IImportItem {
 }
 
 /**
- * 短暂让出宿主，便于控制台按阶段观察 2022 刷屏位置。
- */
-export function delayHost(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-/**
- * 输出导入阶段诊断标记（便于对照宿主 2022-return:5 出现区间）。
- */
-export function logImportStage(stage: string, detail?: string) {
-  const suffix = detail ? ` | ${detail}` : '';
-  console.log(`[导入诊断] ===== ${stage}${suffix} =====`);
-}
-
-/**
  * 仅拉取团队库 ComponentNode，不创建实例。
  */
 export async function importComponentNode(
