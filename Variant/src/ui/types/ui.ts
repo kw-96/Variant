@@ -56,9 +56,3 @@ export interface ConfigItem {
   platform: string;
   [key: string]: any;
 }
-
-export interface DataFileDropZoneProps {
-  placeholder?: string;
-  accept?: string[];
-  multiple?: boolean;
-}

@@ -88,11 +88,8 @@
     round
     :teleport="false"
     :close-on-click-overlay="true"
+    :class="$style.batchPopup"
     :style="{
-      width: 'calc(100vw - 32px)',
-      height: 'calc(100vh - 32px)',
-      maxWidth: 'calc(100vw - 32px)',
-      maxHeight: 'calc(100vh - 32px)',
       display: 'flex',
       flexDirection: 'column',
       overflow: 'hidden',
@@ -301,6 +298,10 @@ onUnmounted(() => {
 }
 
 .searchBar {
+  /* searchBar 类挂在 van-search 根元素上，直接命中根去掉白底 */
+  background-color: transparent !important;
+  padding: 0 !important;
+
   /* 覆盖 Vant 搜索框内部样式 */
   :global {
     .van-search {
@@ -308,12 +309,57 @@ onUnmounted(() => {
       padding: 0;
     }
     .van-search__content {
-      background-color: transparent;
+      background-color: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: 8px;
       padding-left: 0;
+    }
+    /* 去掉搜索框右侧多余空白（字段右内边距造成的圆角空帽观感） */
+    .van-search__field {
+      padding-right: 0;
+    }
+    /* 只保留 __content 的圆角矩形，内部所有边框/分隔线全部清除 */
+    .van-search__content *,
+    .van-search__content *::before,
+    .van-search__content *::after {
+      border: none !important;
+      box-shadow: none !important;
+    }
+    .van-search__content *::before,
+    .van-search__content *::after {
+      display: none !important;
+    }
+    .van-field {
+      background-color: transparent;
+    }
+    .van-field__control {
+      color: var(--input-text);
+      caret-color: var(--input-text);
+    }
+    .van-field__control::placeholder {
+      color: var(--input-placeholder);
     }
     .van-field__left-icon {
       margin-right: var(--van-padding-base);
       margin-left: var(--van-padding-base);
+      color: var(--text-secondary);
+    }
+    .van-field__clear {
+      color: var(--text-secondary);
+    }
+    /* 移除搜索框右侧图标/清除按钮残留的竖线 */
+    .van-field__clear,
+    .van-field__right-icon,
+    .van-field__button {
+      display: none !important;
+    }
+    .van-field__body {
+      padding-right: 0 !important;
+    }
+    input::-webkit-search-cancel-button,
+    input::-webkit-search-decoration {
+      -webkit-appearance: none;
+      display: none;
     }
   }
 }
@@ -427,5 +473,18 @@ onUnmounted(() => {
 .actionBar {
   padding-top: 8px;
   border-top: 1px solid var(--divider-color);
+}
+
+/* 批量导入弹窗：改用 inset 定位替代居中 translate，避免半像素偏移导致文字发虚 */
+.batchPopup {
+  top: 16px !important;
+  left: 16px !important;
+  right: 16px !important;
+  bottom: 16px !important;
+  width: auto !important;
+  height: auto !important;
+  max-width: none !important;
+  max-height: none !important;
+  transform: none !important;
 }
 </style>

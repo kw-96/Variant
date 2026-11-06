@@ -15,6 +15,17 @@
         所选容器下没有可切换的实例
       </div>
       <div v-else :class="$style.list">
+        <div :class="$style.listHead">
+          <button
+            type="button"
+            :class="$style.headResetLabel"
+            :disabled="loading || switching || !!deletingName"
+            :title="allLegacy ? '取消全部旧版模式' : '全部勾选旧版模式'"
+            @click="toggleAllLegacy"
+          >
+            旧版模式
+          </button>
+        </div>
         <div v-for="item in instances" :key="item.name" :class="$style.row">
           <div :class="$style.instanceName" :title="item.name">{{ item.name }}</div>
           <select v-model="selectedMap[item.name]" :class="$style.select">
@@ -33,8 +44,26 @@
             <van-loading v-if="deletingName === item.name" size="16" />
             <span v-else>删除</span>
           </button>
+          <van-checkbox
+            v-model="legacyMap[item.name]"
+            :class="$style.resetCheck"
+            shape="square"
+            icon-size="16px"
+            :disabled="loading || switching || !!deletingName"
+            :title="`旧版模式（保留旧图层名）：${item.name}`"
+          />
         </div>
       </div>
+    </div>
+
+    <div
+      v-if="resultTip"
+      :class="[
+        $style.resultTip,
+        resultTipType === 'error' ? $style.resultTipError : $style.resultTipSuccess,
+      ]"
+    >
+      {{ resultTip }}
     </div>
 
     <div :class="$style.footer">
@@ -61,9 +90,14 @@ const {
   switching,
   deletingName,
   message,
+  resultTip,
+  resultTipType,
   instances,
   components,
   selectedMap,
+  legacyMap,
+  allLegacy,
+  toggleAllLegacy,
   canSwitch,
   requestData,
   handleSwitch,
@@ -103,6 +137,36 @@ const {
   font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
+}
+
+.listHead {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 10px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-secondary);
+}
+
+.headResetLabel {
+  padding: 0 4px;
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--theme-color);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.headResetLabel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.resetCheck {
+  flex-shrink: 0;
+  margin-left: 4px;
 }
 
 .content {
@@ -164,6 +228,26 @@ const {
   padding: 32px 12px;
   text-align: center;
   color: var(--text-secondary);
+}
+
+.resultTip {
+  flex-shrink: 0;
+  margin: 0 12px 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  word-break: break-all;
+}
+
+.resultTipSuccess {
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+}
+
+.resultTipError {
+  color: #ee0a24;
+  background: rgba(238, 10, 36, 0.08);
 }
 
 .footer {

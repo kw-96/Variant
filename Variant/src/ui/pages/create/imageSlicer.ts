@@ -21,42 +21,39 @@ export interface SliceArea {
  * @returns 切片区域数组
  */
 export function creCutArea(w: number, h: number, maxSize: number = 4096): SliceArea[] {
-  let W = w;
-  let H = h;
-  let cutW = 1;
-  let cutH = 1;
+  // 原图总宽高按整数像素处理，作为切割的基准
+  const W = Math.round(w);
+  const H = Math.round(h);
   const cuts: SliceArea[] = [];
 
-  // 如果图片尺寸小于maxSize，直接返回
+  // 如果图片尺寸小于maxSize，直接返回单个整数切片
   if (W <= maxSize && H <= maxSize) {
     return [{ w: W, h: H, x: 0, y: 0 }];
   }
 
-  // 计算需要切片的数量
-  cutW = Math.ceil(W / maxSize);
-  cutH = Math.ceil(H / maxSize);
+  // 计算需要切片的行列数
+  const cols = Math.ceil(W / maxSize);
+  const rows = Math.ceil(H / maxSize);
 
-  const Ws = Math.ceil(W / cutW);
-  const Hs = Math.ceil(H / cutH);
-  const lastWs = W - (Ws * (cutW - 1));
-  const lastHs = H - (Hs * (cutH - 1));
+  // 除最后一列/最后一行外，统一使用整数像素的基准尺寸与整数位置
+  const baseW = Math.ceil(W / cols);
+  const baseH = Math.ceil(H / rows);
 
-  let X = 0;
-  let Y = 0;
+  for (let row = 0; row < rows; row++) {
+    const isLastRow = row === rows - 1;
+    // 整数像素位置
+    const y = baseH * row;
+    // 最后一行高度 = 原图总高 - 前面切片累计高度（吸收余数）
+    const sliceH = isLastRow ? H - baseH * (rows - 1) : baseH;
 
-  for (let i = 0; i < cutW * cutH; i++) {
-    const isLastRow = Math.floor(i / cutW) === cutH - 1;
-    const isLastCol = (i + 1) % cutW === 0;
+    for (let col = 0; col < cols; col++) {
+      const isLastCol = col === cols - 1;
+      // 整数像素位置
+      const x = baseW * col;
+      // 最后一列宽度 = 原图总宽 - 前面切片累计宽度（吸收余数）
+      const sliceW = isLastCol ? W - baseW * (cols - 1) : baseW;
 
-    let sliceW = isLastCol ? lastWs : Ws;
-    let sliceH = isLastRow ? lastHs : Hs;
-
-    cuts.push({ w: sliceW, h: sliceH, x: X, y: Y });
-
-    X += Ws;
-    if ((i + 1) % cutW === 0) {
-      X = 0;
-      Y += Hs;
+      cuts.push({ w: sliceW, h: sliceH, x, y });
     }
   }
 
@@ -95,13 +92,19 @@ export async function cutImgToCanvas(
         const cutImgs: Uint8Array[] = [];
 
         cuts.forEach((cut) => {
+          // 源文件裁剪坐标与裁剪尺寸强制使用整数像素，保证像素级精确切割
+          const cropX = Math.round(cut.x);
+          const cropY = Math.round(cut.y);
+          const cropW = Math.round(cut.w);
+          const cropH = Math.round(cut.h);
+
           const canvas2 = document.createElement('canvas');
-          canvas2.width = cut.w;
-          canvas2.height = cut.h;
+          canvas2.width = cropW;
+          canvas2.height = cropH;
           const ctx2 = canvas2.getContext('2d');
 
           if (ctx2) {
-            ctx2.drawImage(canvas, cut.x, cut.y, cut.w, cut.h, 0, 0, cut.w, cut.h);
+            ctx2.drawImage(canvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
             const dataURL = canvas2.toDataURL('image/png');
             const base64 = dataURL.split(',')[1];
             const imgData = new Uint8Array(

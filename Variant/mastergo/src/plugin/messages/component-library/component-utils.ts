@@ -15,13 +15,14 @@ export function isPreviewNode(node: any): boolean {
 
 /**
  * 判断父节点是否使用自动布局
+ * 同时兼容 MasterGo 的 flexMode 与 Figma 的 layoutMode，避免两者口径不一致
  * @param parent 父节点
  * @returns 是否使用自动布局
  */
 export function hasAutoLayout(parent: any): boolean {
   if (!parent) return false;
-  // flexMode 存在且不为空/无效值
-  return parent.flexMode && typeof parent.flexMode === 'string' && parent.flexMode !== 'NONE';
+  const mode = parent.flexMode || parent.layoutMode;
+  return !!mode && typeof mode === 'string' && mode !== 'NONE';
 }
 
 /**
@@ -100,13 +101,13 @@ export function findFirstNodePosition(nodes: any[]): { x: number; y: number } | 
  */
 export function parseErrorReason(error: any): string {
   const errorMsg = error?.message || String(error) || '未知错误';
-  
+
   if (errorMsg.includes('2022') || errorMsg.includes('return')) {
     return '组件不存在或权限不足';
   } else if (errorMsg.includes('network') || errorMsg.includes('网络')) {
     return '网络错误';
   }
-  
+
   return errorMsg;
 }
 

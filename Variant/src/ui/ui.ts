@@ -3,54 +3,24 @@ import 'vant/lib/index.css';
 
 import { createApp } from 'vue';
 import App from './App.vue';
-import { 
-  Icon, 
-  Tabs, 
-  Tab, 
-  Popup, 
+import {
+  Icon,
+  Tabs,
+  Tab,
+  Popup,
   Button,
   Checkbox,
   CheckboxGroup,
   Search,
   Loading,
-  Row,
-  Col,
-  Field,
-  Divider,
-  DropdownMenu,
-  DropdownItem,
-  Cell,
-  CellGroup,
-  Stepper,
-  Empty
+  Field
 } from 'vant';
 import { createPinia } from 'pinia';
 import inputDblclickSelect from './directives/input-dblclick-select';
+import { applyTheme, getSystemTheme } from './utils/theme';
 
-// 应用主题
-function applyTheme(theme: string) {
-  document.documentElement.setAttribute('data-theme', theme);
-}
-
-// 监听来自插件主线程的主题变化消息
-window.onmessage = (event) => {
-  // 检查消息格式 - MasterGo使用不同的消息格式
-  let message;
-  if (event.data.pluginMessage) {
-    // Figma格式
-    message = event.data.pluginMessage;
-  } else if (event.data && event.data.type) {
-    // MasterGo格式 - 直接使用event.data
-    message = event.data;
-  }
-  
-  if (message && message.type === 'THEME_CHANGE') {
-    applyTheme(message.theme);
-  }
-};
-
-// 不设置默认主题，等待插件发送正确的主题
-// applyTheme('light'); // 注释掉这行，避免覆盖正确主题
+// 首帧按系统主题渲染，避免闪烁；随后 App.vue 会用「已记住的主题」覆盖
+applyTheme(getSystemTheme());
 
 const app = createApp(App);
 app.use(Icon);
@@ -62,16 +32,7 @@ app.use(Checkbox);
 app.use(CheckboxGroup);
 app.use(Search);
 app.use(Loading);
-app.use(Row);
-app.use(Col);
 app.use(Field);
-app.use(Divider);
-app.use(DropdownMenu);
-app.use(DropdownItem);
-app.use(Cell);
-app.use(CellGroup);
-app.use(Stepper);
-app.use(Empty);
 app.use(createPinia());
 app.directive('input-dblclick-select', inputDblclickSelect);
 

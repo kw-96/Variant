@@ -10,6 +10,12 @@
     <!-- 标签切换 -->
     <div :class="$style.tabs">
       <div
+        :class="[$style.tab, { [$style.active]: activeTab === 'unified' }]"
+        @click="activeTab = 'unified'"
+      >
+        统一命名
+      </div>
+      <div
         :class="[$style.tab, { [$style.active]: activeTab === 'fixed' }]"
         @click="activeTab = 'fixed'"
       >
@@ -22,8 +28,12 @@
         自动序号
       </div>
     </div>
+    <!-- 统一命名：内嵌原「统一命名」功能页 -->
+    <div v-if="activeTab === 'unified'" :class="$style.unifiedContent">
+      <ArtRename />
+    </div>
     <!-- 页面内容 -->
-    <div :class="$style.content">
+    <div v-else :class="$style.content">
 
       <!-- 位置选择按钮 -->
       <div :class="$style.positionButtons">
@@ -105,6 +115,7 @@
 import { ref, computed } from 'vue';
 import { MessageType, sendMsgToPlugin } from '../../../messages';
 import TabInput from '../../components/TabInput.vue';
+import ArtRename from '../art/rename.vue';
 
 // 定义事件
 const emit = defineEmits<{
@@ -112,7 +123,7 @@ const emit = defineEmits<{
 }>();
 
 // 标签状态
-const activeTab = ref<'fixed' | 'auto'>('fixed');
+const activeTab = ref<'fixed' | 'auto' | 'unified'>('fixed');
 
 // 位置选择
 const position = ref<'before' | 'after'>('before');
@@ -495,6 +506,14 @@ function handleRename() {
   gap: 16px;
   overflow-y: auto;
   box-sizing: border-box;
+}
+
+.unifiedContent {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
 }
 
 .positionButtons {

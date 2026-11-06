@@ -54,17 +54,28 @@ async function handlePixelIm(data: any[]) {
     0
   );
 
-  const baseX = centerX - totalWidth / 2 + xx;
-  const baseY = centerY - totalHeight / 2 + yy;
+  // 基准坐标取整，保证所有切片的接缝落在整数像素上，避免亚像素抗锯齿产生分割线
+  const baseX = Math.round(centerX - totalWidth / 2 + xx);
+  const baseY = Math.round(centerY - totalHeight / 2 + yy);
 
   const batchNodes: any[] = [];
 
   for (let i = 0; i < data.length; i++) {
+    // 切片相对位置使用整数像素
+    const relX = Math.round(data[i].x);
+    const relY = Math.round(data[i].y);
+    // 判断是否为最后一列/最后一行（拼接边缘）
+    const isLastCol = Math.abs(data[i].x + data[i].w - totalWidth) < 1e-6;
+    const isLastRow = Math.abs(data[i].y + data[i].h - totalHeight) < 1e-6;
+    // 最后一列/行的宽高由“原图总宽高 - 前面切片累计宽高”计算，吸收余数；其余使用整数值
+    const sliceW = isLastCol ? totalWidth - relX : Math.round(data[i].w);
+    const sliceH = isLastRow ? totalHeight - relY : Math.round(data[i].h);
+
     const pixels = mg.createRectangle();
-    pixels.x = baseX + data[i].x;
-    pixels.y = baseY + data[i].y;
-    pixels.width = data[i].w;
-    pixels.height = data[i].h;
+    pixels.x = baseX + relX;
+    pixels.y = baseY + relY;
+    pixels.width = sliceW;
+    pixels.height = sliceH;
     pixels.name = data[i].name;
 
     // 填充图片

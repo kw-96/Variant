@@ -1,5 +1,6 @@
 // 批量生成按钮
 import { MessageType } from '../../../../../../src/messages';
+import { collectTextNodes } from '../../../utils/node-utils';
 
 interface GenerateData {
   lines?: string[];
@@ -114,29 +115,6 @@ function applyTextProperty(instance: any, value: string) {
       // ignored
     }
   }
-}
-
-function collectTextNodes(node: any): any[] {
-  const result: any[] = [];
-  if (!node) return result;
-
-  const walk = (target: any) => {
-    if (!target) return;
-
-    if (target.type === 'TEXT') {
-      result.push(target);
-      return;
-    }
-
-    if (!target.children || target.children.length === 0) return;
-
-    for (let i = 0; i < target.children.length; i++) {
-      walk(target.children[i]);
-    }
-  };
-
-  walk(node);
-  return result;
 }
 
 export default {

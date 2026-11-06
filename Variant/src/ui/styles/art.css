@@ -1,0 +1,379 @@
+/* 美术工具页面 · 设计系统
+ * 深色模式：像素级还原原「渠道整理」插件配色（#1e1e1e / #2a2a2a / #4a7dff）
+ * 浅色模式：对应的浅色映射变体（跟随明暗切换）
+ */
+
+.art-page {
+  /* —— 浅色（默认）—— */
+  --ap-page: #ffffff;
+  --ap-box: #f0f2f5;
+  --ap-box-text: #5a6270;
+  --ap-strong: #1f2430;
+  --ap-text: #2a2f3a;
+  --ap-text2: #8a909c;
+  --ap-card-bg: #ffffff;
+  --ap-card-border: #e1e4e8;
+  --ap-head-bg: #f0f2f5;
+  --ap-head-hover: #e8ebef;
+  --ap-body-bg: #fafbfc;
+  --ap-divider: #eaecef;
+  --ap-dim-bg: #eef0f3;
+  --ap-input-bg: #ffffff;
+  --ap-input-border: #d0d7de;
+  --ap-input-text: #1f2430;
+  --ap-blue: #4a7dff;
+  --ap-blue-hover: #3d6bef;
+  --ap-count-bg: rgba(74, 125, 255, 0.13);
+  --ap-count-text: #3a63d6;
+  --ap-invalid-bg: #fff6df;
+  --ap-invalid-text: #8a6d1a;
+  --ap-ghost-bg: #f0f2f5;
+  --ap-ghost-border: #d0d7de;
+  --ap-ghost-text: #5a6270;
+
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  flex: 1 1 auto;
+  min-height: 100%;
+  box-sizing: border-box;
+  background: transparent;
+  color: var(--ap-text);
+  text-align: left;
+  position: relative;
+}
+
+html[data-theme='dark'] .art-page {
+  /* —— 深色：原插件配色 —— */
+  --ap-page: #1e1e1e;
+  --ap-box: #2a2a2a;
+  --ap-box-text: #b8b8b8;
+  --ap-strong: #ffffff;
+  --ap-text: #e6e6e6;
+  --ap-text2: #9a9a9a;
+  --ap-card-bg: #242424;
+  --ap-card-border: #333333;
+  --ap-head-bg: #2a2a2a;
+  --ap-head-hover: #323232;
+  --ap-body-bg: #202020;
+  --ap-divider: #2e2e2e;
+  --ap-dim-bg: #2f2f2f;
+  --ap-input-bg: #2a2a2a;
+  --ap-input-border: #3d3d3d;
+  --ap-input-text: #ffffff;
+  --ap-blue: #4a7dff;
+  --ap-blue-hover: #3d6bef;
+  --ap-count-bg: rgba(74, 125, 255, 0.13);
+  --ap-count-text: #8ba9ff;
+  --ap-invalid-bg: #3a341f;
+  --ap-invalid-text: #ffd98a;
+  --ap-ghost-bg: #2a2a2a;
+  --ap-ghost-border: #3d3d3d;
+  --ap-ghost-text: #cccccc;
+}
+
+/* 当 art 页面位于 Vant 标签页内（资源位→导出）时，仅让其所在子树撑满高度，
+ * 使底部按钮沉底；不含 .art-page 的旧标签页完全不受影响。 */
+.van-tabs__content:has(.art-page) {
+  display: flex;
+  flex-direction: column;
+}
+
+.van-tabs__content:has(.art-page) > :has(.art-page) {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.van-tabs__content:has(.art-page) > :has(.art-page) > * {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 工具箱内嵌一键抠图/通用替换：撑满包裹容器，使底部按钮沉底 */
+.tb-fill {
+  display: flex;
+  flex-direction: column;
+}
+
+.tb-fill > * {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.art-note {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ap-text2);
+}
+
+
+/* 分段控件（模式切换） */
+.art-seg {
+  position: relative;
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  background: var(--ap-input-bg);
+  border: 1px solid var(--ap-input-border);
+  border-radius: 8px;
+}
+
+.art-seg-item {
+  flex: 1;
+  text-align: center;
+  padding: 7px 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ap-box-text);
+  cursor: pointer;
+  border-radius: 6px;
+  user-select: none;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.art-seg-item:hover {
+  color: var(--ap-strong);
+}
+
+.art-seg-item.active {
+  background: var(--ap-blue);
+  color: #ffffff;
+}
+
+/* 选中信息条 */
+.art-selbox {
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--ap-box);
+  color: var(--ap-box-text);
+  font-size: 13px;
+}
+
+.art-selbox strong {
+  color: var(--ap-strong);
+}
+
+/* 表单 */
+.art-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.art-label {
+  margin-bottom: 6px;
+  color: var(--ap-box-text);
+  font-size: 12px;
+}
+
+.art-input,
+.art-select,
+.art-textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--ap-input-border);
+  border-radius: 6px;
+  background: var(--ap-input-bg);
+  color: var(--ap-input-text);
+  font-size: 13px;
+  outline: none;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.art-textarea {
+  flex: 1 1 auto;
+  min-height: 140px;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.art-input:focus,
+.art-select:focus,
+.art-textarea:focus {
+  border-color: var(--ap-blue);
+}
+
+/* 说明文（placeholder）颜色再浅一点 */
+.art-textarea::placeholder {
+  color: #9da5ae !important;
+}
+html[data-theme='dark'] .art-textarea::placeholder {
+  color: #6e7681 !important;
+}
+
+/* 主按钮（覆盖全局 button !important 规则） */
+.art-btn {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--ap-blue) !important;
+  border-radius: 6px;
+  background: var(--ap-blue) !important;
+  color: #ffffff !important;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.art-btn:hover {
+  background: var(--ap-blue-hover) !important;
+  border-color: var(--ap-blue-hover) !important;
+}
+
+.art-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 次按钮（描边幽灵） */
+.art-btn-ghost {
+  padding: 9px 16px;
+  border: 1px solid var(--ap-ghost-border) !important;
+  border-radius: 6px;
+  background: var(--ap-ghost-bg) !important;
+  color: var(--ap-ghost-text) !important;
+  font-size: 13px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.art-btn-ghost:hover {
+  color: var(--ap-strong) !important;
+  border-color: var(--ap-blue) !important;
+}
+
+/* 胶囊按钮（类别多选） */
+.art-pill {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--ap-input-border) !important;
+  border-radius: 6px;
+  background: var(--ap-input-bg) !important;
+  color: var(--ap-ghost-text) !important;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.art-pill:hover {
+  color: var(--ap-strong) !important;
+}
+
+.art-pill.active {
+  background: var(--ap-blue) !important;
+  border-color: var(--ap-blue) !important;
+  color: #ffffff !important;
+}
+
+/* 卡片 / 分组 */
+.art-card {
+  border: 1px solid var(--ap-card-border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--ap-card-bg);
+}
+
+.art-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background: var(--ap-head-bg);
+  font-size: 12px;
+  color: var(--ap-text);
+}
+
+.art-badge {
+  padding: 1px 8px;
+  border-radius: 10px;
+  background: var(--ap-count-bg);
+  color: var(--ap-count-text);
+  font-size: 11px;
+}
+
+/* 进度条 */
+.art-bar {
+  height: 8px;
+  border-radius: 99px;
+  background: var(--ap-box);
+  overflow: hidden;
+}
+
+.art-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4a7dff, #a78bfa);
+  transition: width 0.2s ease;
+}
+
+/* 提示框 */
+.art-tip {
+  padding: 9px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.art-tip.success {
+  background: #eaf7ee;
+  color: #116329;
+  border: 1px solid #a7e0b5;
+}
+
+.art-tip.error {
+  background: #ffebe9;
+  color: #b62324;
+  border: 1px solid #ffc1bc;
+}
+
+.art-tip.warning {
+  background: #fff8c5;
+  color: #7a5c00;
+  border: 1px solid #efd680;
+}
+
+html[data-theme='dark'] .art-tip.success {
+  background: #1f3a2a;
+  color: #7ee2a8;
+  border-color: #2f5b41;
+}
+
+html[data-theme='dark'] .art-tip.error {
+  background: #3a1f1f;
+  color: #ff9b9b;
+  border-color: #5b2f2f;
+}
+
+html[data-theme='dark'] .art-tip.warning {
+  background: #3a341f;
+  color: #ffd98a;
+  border-color: #5b502f;
+}
+
+/* H5 选中信息条 + 操作按钮 */
+.h5-selrow {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.h5-selrow .art-selbox {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+}
+
+.h5-action-btn {
+  flex: 0 0 auto;
+  width: auto;
+  padding: 0 14px;
+  white-space: nowrap;
+}

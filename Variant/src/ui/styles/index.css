@@ -5,3 +5,6 @@
 
 /* 导入组件样式 */
 @import './components.css';
+
+/* 导入美术工具页面设计系统 */
+@import './art.css';

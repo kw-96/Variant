@@ -1,7 +1,7 @@
 <template>
-  <div :class="$style.container">
+  <div :class="[$style.container, { [$style.embedded]: embedded }]">
     <!-- 标题栏 -->
-    <div :class="$style.header">
+    <div v-if="!embedded" :class="$style.header">
     <button :class="$style.backButton" @click="handleBack" title="返回">
       <van-icon name="arrow-left" :class="$style.backIcon" />
     </button>
@@ -56,6 +56,9 @@ const emit = defineEmits<{
   back: [];
 }>();
 
+// 内嵌到「批量产出」时隐藏自身头部并解除绝对定位
+defineProps<{ embedded?: boolean }>();
+
 const inputValue = ref('');
 
 // 处理返回按钮点击
@@ -97,6 +100,18 @@ function handleGenerate() {
   background-color: var(--bg-primary);
   z-index: 10;
   overflow: hidden;
+}
+
+.embedded {
+  position: relative;
+  top: auto;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  z-index: auto;
+  background-color: transparent;
 }
 
 .header {

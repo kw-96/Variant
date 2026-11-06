@@ -3,6 +3,7 @@
  */
 
 import { applyNodeGeometry, captureNodeGeometry } from './component-utils';
+import { resizeNode } from '../../utils/node-utils';
 
 /** 组类节点：改宽高会缩放子节点 */
 const GROUP_LIKE_TYPES = new Set(['GROUP', 'BOOLEAN_OPERATION']);
@@ -15,30 +16,6 @@ export interface IGeometryEntry {
   node: any;
   geometry: any;
   depth: number;
-}
-
-/**
- * 精确设置尺寸（优先 resizeWithoutConstraints）
- */
-function resizeNode(node: any, width: number, height: number) {
-  if (!node || !(width > 0) || !(height > 0)) return;
-  try {
-    if (typeof node.resizeWithoutConstraints === 'function') {
-      node.resizeWithoutConstraints(width, height);
-    } else if (typeof node.resize === 'function') {
-      node.resize(width, height);
-    } else {
-      node.width = width;
-      node.height = height;
-    }
-  } catch {
-    try {
-      node.width = width;
-      node.height = height;
-    } catch {
-      // ignore
-    }
-  }
 }
 
 /**

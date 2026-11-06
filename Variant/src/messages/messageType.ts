@@ -5,14 +5,19 @@ export enum MessageType {
   // 选择变化
   SELECTION_CHANGE = 'selectionchange',
   
-  // H5切图相关
+  // H5 旧切图能力（MasterGo 端入口已下线；Figma 端仍保留处理器）
   ONE_CLICK_CUT = 'oneClickCut',
   ONE_CLICK_EXPAND = 'oneClickExpand',
   GEN_EXPAND_PREVIEW = 'genExpandPreview',
-  
-  // 按钮尺寸拓展相关
-  AUTO_GENERATE_BUTTONS = 'autoGenerateButtons',
   GEN_BUTTON_PREVIEW = 'genButtonPreview',
+
+  // 一键抠图相关
+  CUTOUT_LOAD = 'cutoutLoad',
+  CUTOUT_IMAGES = 'cutoutImages',
+  CUTOUT_RESULT = 'cutoutResult',
+  CUTOUT_APPLIED = 'cutoutApplied',
+  CUTOUT_FLUSH = 'cutoutFlush',
+  CUTOUT_FINISHED = 'cutoutFinished',
   
   // 资源位相关
   CREATE_FRAMES = 'createFrames',
@@ -20,7 +25,6 @@ export enum MessageType {
   AUTO_ADD_COMPONENT = 'autoAddComponent',
   GET_FRAME = 'getFrame',
   IMPORT_IMAGES = 'importImages',
-  CHANGE_TAB = 'changeTab',
   
   // 工具箱相关
   ROUND_TO_INTEGER = 'roundToInteger',
@@ -29,18 +33,15 @@ export enum MessageType {
   
   // 导出相关
   EXPORT_IMAGES = 'exportImages',
-  FRAME_EXPORT = 'frameExport',
-  IMG_EXPORT = 'imgExport',
   
   // 安全区相关
   TOGGLE_SAFE_AREA = 'toggleSafeArea',
-  GET_SAFE_AREA_STATUS = 'getSafeAreaStatus',
-  SAFE_AREA_STATUS = 'safeAreaStatus',
   
   // 窗口控制相关
   COLLAPSE_WINDOW = 'collapseWindow',
   EXPAND_WINDOW = 'expandWindow',
   WINDOW_STATE_CHANGED = 'windowStateChanged',
+  RESIZE_WINDOW = 'resizeWindow',
   
   // 通知相关
   SHOW_NOTIFY = 'showNotify',
@@ -75,8 +76,37 @@ export enum MessageType {
   BATCH_SWITCH_INSTANCES_DELETE = 'batchSwitchInstancesDelete',
   BATCH_SWITCH_INSTANCES_RESULT = 'batchSwitchInstancesResult',
 
+  // 实例适配
+  INSTANCE_FIT_SELECT = 'instanceFitSelect',
+  INSTANCE_FIT_APPLY = 'instanceFitApply',
+
   // 鉴权链路（仅权限检测）
   GET_CURRENT_USER = 'GET_CURRENT_USER',
-  CURRENT_USER_RESULT = 'CURRENT_USER_RESULT'
-}
+  CURRENT_USER_RESULT = 'CURRENT_USER_RESULT',
 
+  // 美术工具（由 MG插件移植）
+  APPLY = 'apply',
+  RENAME = 'rename',
+  PRIZE_GENERATE = 'prizeGenerate',
+  RENAME_LAYERS = 'renameLayers',
+  TITLE_REPLACE = 'titleReplace',
+  TITLE_EXTRACT = 'titleExtract',
+  TITLE_EXTRACT_RESULT = 'titleExtractResult',
+  CHANNEL_SCAN_START = 'channelScanStart',
+  CHANNEL_SCAN_READY = 'channelScanReady',
+  CHANNEL_SCAN_ONE = 'channelScanOne',
+  CHANNEL_SCAN_ITEM = 'channelScanItem',
+  PLUGIN_RESULT = 'pluginResult',
+  SELECTION_INFO = 'selectionInfo',
+  SELECTION_INFO_REQ = 'selectionInfoReq',
+
+  // 批量水印
+  WATERMARK_GET_SELECTION = 'watermarkGetSelection',
+  WATERMARK_SELECTION = 'watermarkSelection',
+  WATERMARK_APPLY_SELECTION = 'watermarkApplySelection',
+  WATERMARK_APPLY_IMAGE = 'watermarkApplyImage',
+
+  // PSD 转换（界面 iframe 与主线程之间的透明转发通道）
+  PSD_TO_PLUGIN = 'psdToPlugin',
+  PSD_TO_UI = 'psdToUi'
+}
