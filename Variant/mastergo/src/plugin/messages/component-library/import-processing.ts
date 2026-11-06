@@ -1,8 +1,20 @@
 // @ts-nocheck
 import { isPreviewNode, findFirstNodePosition } from './component-utils';
 import { replaceInternalInstances } from './replace-internal-instances';
-import { calculateGroupSizes, arrangeComponentLayout } from './layout-calculator';
+import { arrangeComponentLayout } from './layout-calculator';
 import { processNonPreviewNodes } from './frame-to-component';
+
+/** 在节点上保存完整组件描述（供资源位导出分组） */
+function tagComponentDescription(node: any, description: string): void {
+  if (!node || !description) return;
+  try {
+    if (typeof node.setPluginData === 'function') {
+      node.setPluginData('componentDescription', description);
+    }
+  } catch (e) {
+    // setPluginData 可能不可用，忽略
+  }
+}
 
 /**
  * 普通组件导入后的处理流程（布局 / 解绑 / 可选转换）
@@ -19,28 +31,35 @@ export async function processImportedInstances(
   skipConvert: boolean,
 ): Promise<
   | null
-  | { x: number; y: number }
-  | { x: number; y: number; convertedComponentNames: Set<string> }
+  | { x: number; y: number; finalNodes: any[]; conversionFailures?: Array<{ name: string; reason: string }> }
+  | {
+      x: number;
+      y: number;
+      convertedComponentNames: Set<string>;
+      finalNodes: any[];
+      conversionFailures?: Array<{ name: string; reason: string }>;
+    }
 > {
   if (!descriptionGroups || descriptionGroups.length === 0) return null;
 
-  const groupSizes = calculateGroupSizes(descriptionGroups);
-  arrangeComponentLayout(descriptionGroups, groupSizes, viewportCenter);
+  arrangeComponentLayout(descriptionGroups, viewportCenter);
 
-  const instances: any[] = [];
-  descriptionGroups.forEach((group) => instances.push(...group.instances));
-
+  // 导入时为每个资源保存其所属的完整组件描述（供资源位导出按「渠道+组件描述」分组）
   const detachedNodes: any[] = [];
-  for (const instance of instances) {
-    try {
-      const name = String(instance?.name || '');
-      const isPreview = isPreviewNode(instance);
-      const detachedNode = instance.detachInstance();
-      if (detachedNode) {
-        detachedNodes.push({ node: detachedNode, name, isPreview });
+  for (const group of descriptionGroups) {
+    const description = String(group?.description || '');
+    for (const instance of group.instances || []) {
+      try {
+        const name = String(instance?.name || '');
+        const isPreview = isPreviewNode(instance);
+        const detachedNode = instance.detachInstance();
+        if (detachedNode) {
+          tagComponentDescription(detachedNode, description);
+          detachedNodes.push({ node: detachedNode, name, isPreview, description });
+        }
+      } catch (e) {
+        // 静默处理解绑失败，继续处理其他实例
       }
-    } catch (e) {
-      // 静默处理解绑失败，继续处理其他实例
     }
   }
 
@@ -50,10 +69,12 @@ export async function processImportedInstances(
     const nodes = detachedNodes.map((item) => item.node).filter(Boolean);
     const position = findFirstNodePosition(nodes);
     if (!position) return null;
-    return position;
+    return { ...position, finalNodes: nodes };
   }
 
-  const createdComponentsMap = processNonPreviewNodes(detachedNodes, currentPage);
+  const createdComponents: any[] = [];
+  const conversionFailures: Array<{ name: string; reason: string }> = [];
+  const createdComponentsMap = processNonPreviewNodes(detachedNodes, currentPage, createdComponents, conversionFailures);
 
   const convertedComponentNames = new Set<string>();
   createdComponentsMap.forEach((component, name) => {
@@ -75,7 +96,7 @@ export async function processImportedInstances(
   }
 
   const allFinalNodes: any[] = [];
-  createdComponentsMap.forEach((component) => {
+  createdComponents.forEach((component) => {
     if (component && typeof component.y === 'number') {
       allFinalNodes.push(component);
     }
@@ -93,5 +114,5 @@ export async function processImportedInstances(
   const position = findFirstNodePosition(allFinalNodes);
   if (!position) return null;
 
-  return { ...position, convertedComponentNames };
+  return { ...position, convertedComponentNames, finalNodes: allFinalNodes, conversionFailures };
 }

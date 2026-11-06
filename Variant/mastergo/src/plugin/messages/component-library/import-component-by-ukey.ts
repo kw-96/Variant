@@ -64,7 +64,7 @@ function normalizeGroupItems(group: ImportGroup): IImportItem[] {
   return [];
 }
 
-async function handler(data: { groups?: ImportGroup[], ukeys?: string[], skipConvert?: boolean }) {
+async function handler(data: { groups?: ImportGroup[], ukeys?: string[], skipConvert?: boolean, regionName?: string }) {
   // 兼容旧格式：如果传递的是 ukeys 数组，转换为 groups 格式
   let groups: ImportGroup[] = [];
   if (data.groups && Array.isArray(data.groups)) {
@@ -217,118 +217,8 @@ async function handler(data: { groups?: ImportGroup[], ukeys?: string[], skipCon
     });
     descriptionGroups.push({ description, instances });
   });
-  // 检查单个描述组是否需要使用多描述组排列规则
-  // 条件：存在含预览命名的组件或存在5个以上组件（必需组件集除外）
-  // 如果满足条件，将单个描述组拆分成多个子描述组（按组件名称相似性分组），然后使用多描述组的排列规则
-  if (descriptionGroups.length === 1 && 
-      !REQUIRED_COMPONENT_SET_DESCRIPTIONS.has(descriptionGroups[0]?.description || '')) {
-    const singleGroup = descriptionGroups[0];
-    const hasPreview = singleGroup?.instances.some((inst: any) => isPreviewNode(inst));
-    const hasMoreThan5 = (singleGroup?.instances.length || 0) > 5;
-    
-    if (hasPreview || hasMoreThan5) {
-      // 按组件名称相似性分组
-      const instances = singleGroup.instances || [];
-      const splitGroups: Array<{ description: string; instances: any[] }> = [];
-
-      // 提取组件名称的基础部分（去掉"_预览"后缀、文件大小和尺寸）
-      const getBaseName = (name: string): string => {
-        let nameStr = String(name || '').trim();
-        if (!nameStr) return '';
-        if (nameStr.includes('_预览')) {
-          nameStr = nameStr.replace(/_预览/g, '');
-        }
-        nameStr = nameStr.replace(/\s+\d+[×x]\d+$/i, '');
-        nameStr = nameStr.replace(/\s+\d+\.?\d*\s*k$/i, '');
-        return nameStr.trim();
-      };
-      
-      // 计算多个字符串的共同前缀
-      const getCommonPrefix = (strs: string[]): string => {
-        if (strs.length === 0) return '';
-        if (strs.length === 1) return strs[0];
-        
-        let prefix = strs[0];
-        for (let i = 1; i < strs.length; i++) {
-          const str = strs[i];
-          let j = 0;
-          while (j < prefix.length && j < str.length && prefix[j] === str[j]) {
-            j++;
-          }
-          prefix = prefix.substring(0, j);
-          if (prefix === '') break;
-        }
-        return prefix;
-      };
-      
-      // 按基础名称分组（初步分组）
-      const nameGroups = new Map<string, any[]>();
-      instances.forEach(inst => {
-        const name = inst?.name || '';
-        const baseName = getBaseName(name);
-        
-        const groupKey = baseName || name;
-        if (!nameGroups.has(groupKey)) {
-          nameGroups.set(groupKey, []);
-        }
-        nameGroups.get(groupKey)!.push(inst);
-      });
-      
-      // 对于包含"-"的名称，进一步合并相似的分组
-      // 如果多个分组的前缀（首个"-"前面）相同，且"-"后面的部分有共同前缀，则合并为一组
-      const mergedGroups = new Map<string, any[]>();
-      const processedKeys = new Set<string>();
-      
-      nameGroups.forEach((groupInstances, groupKey) => {
-        if (processedKeys.has(groupKey)) {
-          return;
-        }
-
-        if (groupKey.includes('-')) {
-          const firstDashIndex = groupKey.indexOf('-');
-          const prefix = groupKey.substring(0, firstDashIndex);
-
-          const similarGroups: Array<{ key: string; instances: any[]; suffix: string }> = [];
-          nameGroups.forEach((instances, key) => {
-            if (key.includes('-') && key.startsWith(prefix + '-')) {
-              const keySuffix = key.substring(firstDashIndex + 1);
-              similarGroups.push({ key, instances, suffix: keySuffix });
-            }
-          });
-
-          if (similarGroups.length > 1) {
-            const suffixes = similarGroups.map(g => g.suffix);
-            const commonSuffixPrefix = getCommonPrefix(suffixes);
-
-            if (commonSuffixPrefix.length > 0) {
-              const mergedKey = prefix + '-' + commonSuffixPrefix;
-              const mergedInstances: any[] = [];
-
-              similarGroups.forEach(g => {
-                mergedInstances.push(...g.instances);
-                processedKeys.add(g.key);
-              });
-
-              mergedGroups.set(mergedKey, mergedInstances);
-              return;
-            }
-          }
-        }
-
-        mergedGroups.set(groupKey, groupInstances);
-        processedKeys.add(groupKey);
-      });
-
-      mergedGroups.forEach((groupInstances) => {
-        splitGroups.push({
-          description: singleGroup.description,
-          instances: groupInstances
-        });
-      });
-
-      descriptionGroups = splitGroups;
-    }
-  }
+  // 保留同一组件描述组内的全部素材，不在配对前按名称拆分；
+  // 正式图/预览图的名称标准化配对与尺寸接近度兜底配对，统一在 layout-calculator 内完成。
 
   if (descriptionGroups.length === 0) {
     // 已跳过必需组件集；无普通组件可导入时直接结束
@@ -338,8 +228,9 @@ async function handler(data: { groups?: ImportGroup[], ukeys?: string[], skipCon
 
   try {
   // 3) 排布 / 解绑 / 转组件 / 预览内资源实例替换（不再导入或替换必需组件集槽位）
+  let processResult: any = null;
   try {
-    await processImportedInstances(
+    processResult = await processImportedInstances(
       descriptionGroups,
       currentPage,
       viewportCenter,
@@ -350,12 +241,127 @@ async function handler(data: { groups?: ImportGroup[], ukeys?: string[], skipCon
     failCount++;
   }
 
+  // 2.5) 转换失败（尺寸校验回滚等）的素材不计入成功数，避免提示与实际产物不一致
+  const conversionFailures: Array<{ name: string; reason: string }> =
+    processResult && Array.isArray(processResult.conversionFailures)
+      ? processResult.conversionFailures
+      : [];
+  if (conversionFailures.length) {
+    conversionFailures.forEach((item, index) => {
+      failedUkeys.set(`convert:${index}:${item.name}`, item.reason || '转为组件失败');
+    });
+    failCount += conversionFailures.length;
+    successCount = Math.max(0, successCount - conversionFailures.length);
+  }
+
+  // 4) 导入成功后：将本次导入的全部素材包裹进以渠道名命名的区域（Section，缺失时回退 Frame）
+  const regionName = String(data.regionName || '').trim();
+  if (
+    regionName &&
+    successCount > 0 &&
+    processResult &&
+    Array.isArray(processResult.finalNodes) &&
+    processResult.finalNodes.length > 0
+  ) {
+    try {
+      createChannelRegion(processResult.finalNodes, regionName, currentPage);
+    } catch (error) {
+      console.error('[组件导入] 创建渠道区域失败:', error);
+    }
+  }
+
   finishImport(successCount, failCount, failedUkeys);
   } catch (error: any) {
     failedUkeys.set('__fatal__', parseErrorReason(error) || '导入过程异常中断');
     failCount++;
     finishImport(successCount, failCount, failedUkeys);
   }
+}
+
+/**
+ * 将本次导入的所有素材包裹进一个以渠道名命名的区域（Section）。
+ * - 使用 MasterGo 的“区域（Section）”，而非画板（Frame）；
+ * - 区域背景填充 #3D3D3D；
+ * - 区域宽高按素材整体边界计算，并向四周各扩展 400px；
+ * - 保持素材当前相对位置、尺寸、名称与排版不变。
+ */
+function createChannelRegion(nodes: any[], name: string, currentPage: any) {
+  const valid = nodes.filter(
+    (n) =>
+      n &&
+      !n.removed &&
+      typeof n.x === 'number' &&
+      typeof n.y === 'number' &&
+      typeof n.width === 'number' &&
+      typeof n.height === 'number'
+  );
+  if (!valid.length) return null;
+
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  valid.forEach((n) => {
+    minX = Math.min(minX, n.x);
+    minY = Math.min(minY, n.y);
+    maxX = Math.max(maxX, n.x + n.width);
+    maxY = Math.max(maxY, n.y + n.height);
+  });
+
+  const PAD = 400;
+  // 记录各素材当前绝对坐标，稍后按区域位置换算相对坐标以保持排版
+  const abs = valid.map((n) => ({ node: n, absX: n.x, absY: n.y }));
+
+  // 兼容不支持 Section 的运行时：回退为普通画板（Frame），避免导入结果丢失
+  let section: any = null;
+  try {
+    section = typeof (mg as any).createSection === 'function' ? (mg as any).createSection() : null;
+  } catch (e) {
+    section = null;
+  }
+  if (!section) {
+    section = mg.createFrame();
+    section.clipsContent = false;
+  }
+  section.name = name;
+  currentPage.appendChild(section);
+
+  // 背景填充 #3D3D3D（MasterGo SolidPaint.color 要求 RGBA，透明度写在 color.a 内）
+  try {
+    section.fills = [
+      {
+        type: 'SOLID',
+        color: { r: 61 / 255, g: 61 / 255, b: 61 / 255, a: 1 },
+      },
+    ];
+  } catch (e) {
+    console.error('[组件导入] 设置区域填充失败:', e);
+  }
+
+  section.x = minX - PAD;
+  section.y = minY - PAD;
+  const w = maxX - minX + PAD * 2;
+  const h = maxY - minY + PAD * 2;
+  if (typeof section.resizeWithoutConstraints === 'function') {
+    section.resizeWithoutConstraints(w, h);
+  } else if (typeof section.resize === 'function') {
+    section.resize(w, h);
+  } else {
+    section.width = w;
+    section.height = h;
+  }
+
+  abs.forEach(({ node, absX, absY }) => {
+    try {
+      section.appendChild(node);
+      node.x = absX - section.x;
+      node.y = absY - section.y;
+    } catch (e) {
+      console.error('[组件导入] 移动素材到区域失败:', e);
+    }
+  });
+
+  return section;
 }
 
 export default {

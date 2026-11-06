@@ -93,6 +93,12 @@ const uiConfig = (env, argv) =>
 
     module: {
       rules: [
+        // 允许 ?raw 导入 HTML 字符串（PSD 转换页 iframe 内容）
+        {
+          test: /\.html$/i,
+          resourceQuery: /raw/,
+          type: 'asset/source',
+        },
         {
           test: /\.vue$/, // 匹配.vue文件
           use: 'vue-loader', // 用vue-loader去解析vue文件

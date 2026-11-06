@@ -1,5 +1,6 @@
 import { applyNodeGeometry, captureNodeGeometry } from './component-utils';
 import { findReplacementTarget, isRequiredSetSlotName } from './replace-match';
+import { resizeNode } from '../../utils/node-utils';
 
 /** 替换行为选项 */
 export interface IReplaceInternalOptions {
@@ -20,35 +21,14 @@ function isNodeValid(node: any): boolean {
 }
 
 /**
- * 按宽高调整节点尺寸（优先官方 resize API）
- */
-function resizeNode(node: any, width: number, height: number) {
-  if (!node || !width || !height) return;
-  try {
-    if (typeof node.resizeWithoutConstraints === 'function') {
-      node.resizeWithoutConstraints(width, height);
-    } else if (typeof node.resize === 'function') {
-      node.resize(width, height);
-    } else {
-      node.width = width;
-      node.height = height;
-    }
-  } catch {
-    // 尺寸调整失败时保持现状
-  }
-}
-
-/**
- * 替换后恢复槽位尺寸/几何；背景实例铺满父容器（与历史结果一致）
+ * 替换后保留团队库原实例的尺寸和几何，不按名称适配父容器
  */
 function restoreSlotAppearance(
   instance: any,
   parent: any,
   originalGeometry: any,
   originalWidth: number | null,
-  originalHeight: number | null,
-  matchedName: string | null,
-  originalName: string
+  originalHeight: number | null
 ) {
   const newWidth = typeof instance.width === 'number' ? instance.width : null;
   const newHeight = typeof instance.height === 'number' ? instance.height : null;
@@ -73,25 +53,12 @@ function restoreSlotAppearance(
   delete geometryToRestore.width;
   delete geometryToRestore.height;
   applyNodeGeometry(instance, geometryToRestore, parent);
-
-  const isBackground =
-    (matchedName && matchedName.includes('背景')) ||
-    (typeof originalName === 'string' && originalName.includes('背景'));
-  if (!isBackground) return;
-
-  const currentParent = instance.parent;
-  if (!currentParent) return;
-  const parentWidth = typeof currentParent.width === 'number' ? currentParent.width : null;
-  const parentHeight = typeof currentParent.height === 'number' ? currentParent.height : null;
-  if (parentWidth && parentHeight) {
-    resizeNode(instance, parentWidth, parentHeight);
-  }
 }
 
 /**
  * 将实例替换为映射表中的本地组件：优先 swapComponent，失败再删建。
  */
-function replaceOneInstance(node: any, targetComponent: any, matchedName: string) {
+function replaceOneInstance(node: any, targetComponent: any) {
   if (!isNodeValid(node)) return;
 
   let parent: any;
@@ -108,25 +75,26 @@ function replaceOneInstance(node: any, targetComponent: any, matchedName: string
   const originalName = String(node.name || '');
 
   if (typeof node.swapComponent === 'function') {
+    let swapped = false;
     try {
       node.swapComponent(targetComponent);
+      swapped = true;
+    } catch {
+      // 引用切换失败：回退到删建路径
+    }
+    if (swapped) {
+      // 引用已切换成功；尺寸恢复失败不能当作切换失败，否则会误入新建替换
       try {
         node.name = originalName;
       } catch {
         // 部分节点不允许改名
       }
-      restoreSlotAppearance(
-        node,
-        parent,
-        originalGeometry,
-        originalWidth,
-        originalHeight,
-        matchedName,
-        originalName
-      );
+      try {
+        restoreSlotAppearance(node, parent, originalGeometry, originalWidth, originalHeight);
+      } catch (e) {
+        console.warn(`[组件导入] 恢复实例尺寸失败 (${originalName})`, e);
+      }
       return;
-    } catch {
-      // 回退到删建路径
     }
   }
 
@@ -165,15 +133,7 @@ function replaceOneInstance(node: any, targetComponent: any, matchedName: string
     // 旧节点已不存在视为替换成功
   }
 
-  restoreSlotAppearance(
-    newInstance,
-    parent,
-    originalGeometry,
-    originalWidth,
-    originalHeight,
-    matchedName,
-    originalName
-  );
+  restoreSlotAppearance(newInstance, parent, originalGeometry, originalWidth, originalHeight);
 }
 
 /**
@@ -241,7 +201,7 @@ export function replaceInternalInstances(
   }
 
   try {
-    replaceOneInstance(node, matched.targetComponent, matched.matchedName);
+    replaceOneInstance(node, matched.targetComponent);
   } catch (e: any) {
     if (e?.message && !e.message.includes('does not exist')) {
       console.error(`替换实例失败 (${node.name} -> ${matched.matchedName}):`, e);

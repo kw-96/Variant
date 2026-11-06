@@ -1,7 +1,7 @@
 <template>
-  <div :class="$style.container">
+  <div :class="[$style.container, { [$style.embedded]: embedded }]">
     <!-- 标题栏 -->
-    <div :class="$style.header">
+    <div v-if="!embedded" :class="$style.header">
       <button :class="$style.backButton" @click="handleBack" title="返回">
         <van-icon name="arrow-left" :class="$style.backIcon" />
       </button>
@@ -85,6 +85,9 @@ import { handleExcelUpload } from '../../utils/fileUploadHandler';
 const emit = defineEmits<{
   back: [];
 }>();
+
+// 内嵌到「批量产出」时隐藏自身头部并解除绝对定位
+defineProps<{ embedded?: boolean }>();
 
 interface FileItem {
   file?: File;
@@ -354,13 +357,16 @@ async function handleImageRequest(data: { fileName: string }) {
 }
 
 // 监听选中状态变化和图片请求
+const listenerOffs: Array<() => void> = [];
 onMounted(() => {
-  addMessageListener(MessageType.SELECTION_CHANGE, handleSelectionChange);
-  addMessageListener(MessageType.BATCH_EXTEND_REQUEST_IMAGE, handleImageRequest);
-  addMessageListener(MessageType.BATCH_EXTEND_BATCH_RESULT, handleBatchResultEvent);
+  listenerOffs.push(addMessageListener(MessageType.SELECTION_CHANGE, handleSelectionChange));
+  listenerOffs.push(addMessageListener(MessageType.BATCH_EXTEND_REQUEST_IMAGE, handleImageRequest));
+  listenerOffs.push(addMessageListener(MessageType.BATCH_EXTEND_BATCH_RESULT, handleBatchResultEvent));
 });
 
 onBeforeUnmount(() => {
+  listenerOffs.forEach((off) => off && off());
+  listenerOffs.length = 0;
   resetBatchState();
 });
 
@@ -661,6 +667,18 @@ function isImageColumnName(header: string) {
   background-color: var(--bg-primary);
   z-index: 10;
   overflow: hidden;
+}
+
+.embedded {
+  position: relative;
+  top: auto;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  z-index: auto;
+  background-color: transparent;
 }
 
 .header {

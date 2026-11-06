@@ -12,13 +12,15 @@
           <label
             v-for="lib in libraryOptions"
             :key="lib"
+            :ref="(el) => setLibraryItemRef(lib, el)"
             :class="[$style.libraryItem, selectedLibraries.includes(lib) && $style.active]"
           >
             <input
-              v-model="selectedLibraries"
+              :checked="selectedLibraries.includes(lib)"
               type="checkbox"
               :value="lib"
               :class="$style.libraryCheckbox"
+              @change="onChannelToggle(lib, $event)"
             />
             <span>{{ lib }}</span>
           </label>
@@ -32,6 +34,7 @@
         <div v-if="catalogLoadError && !rows.length" :class="$style.hintWarn">
           目录加载超时或失败，请稍后重试
         </div>
+        <div v-if="channelTip" :class="$style.hintWarn">{{ channelTip }}</div>
       </div>
 
       <div :class="[$style.fieldBlock, $style.batchListField]">
@@ -63,7 +66,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { MessageType, addMessageListener, sendMsgToPlugin } from '../../../messages';
 import { compareAlphanumeric } from '../../utils/common';
 import {
@@ -90,7 +93,39 @@ const emit = defineEmits<{
 
 const linesText = ref('');
 const selectedLibraries = ref<string[]>([]);
+/** 用户是否手动改过渠道选择：手动后不再被文本自动识别覆盖 */
+const manualChannelTouched = ref(false);
+
+/**
+ * 手动勾选/取消渠道资源位
+ * @param lib 团队库名称
+ * @param event 原生 checkbox change 事件
+ */
+function onChannelToggle(lib: string, event: Event) {
+  manualChannelTouched.value = true;
+  const checked = !!(event.target as HTMLInputElement)?.checked;
+  const set = new Set(selectedLibraries.value);
+  if (checked) set.add(lib);
+  else set.delete(lib);
+  selectedLibraries.value = Array.from(set);
+}
 const isImporting = ref(false);
+const channelTip = ref('');
+
+// 渠道按钮 DOM 引用表，用于自动识别后定位到已选中的渠道按钮
+const libraryItemRefs = new Map<string, HTMLElement>();
+function setLibraryItemRef(lib: string, el: any) {
+  if (el) libraryItemRefs.set(lib, el as HTMLElement);
+  else libraryItemRefs.delete(lib);
+}
+function scrollChannelIntoView(lib: string) {
+  nextTick(() => {
+    const el = libraryItemRefs.get(lib);
+    if (el && typeof el.scrollIntoView === 'function') {
+      el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+  });
+}
 
 const groupedAll = computed(() => buildComponentCatalogGroups(props.rows));
 
@@ -106,6 +141,80 @@ const libraryOptions = computed(() => {
   });
   return Array.from(names).sort(compareAlphanumeric);
 });
+
+/**
+ * 渠道资源位选项：从名称中提取渠道关键词（“<关键词>渠道资源位”），
+ * 并标记是否为旧版（名称包含“旧”）。用于批量列表文本的渠道自动识别。
+ */
+interface ChannelOption {
+  name: string;
+  keyword: string;
+  isLegacy: boolean;
+}
+
+const channelOptions = computed<ChannelOption[]>(() =>
+  libraryOptions.value
+    .filter((n) => n.includes('渠道资源位'))
+    .map((n) => ({
+      name: n,
+      keyword: n.split('渠道资源位')[0].trim(),
+      isLegacy: n.includes('旧'),
+    }))
+    .filter((o) => o.keyword.length > 0)
+);
+
+/**
+ * 从单行资源名称中提取“开头的渠道字段”：
+ * 1) 去除开头序号（如 A1、A2、D3、D17，字母+数字+空白）；
+ * 2) 取第一个连接符（- _ — – － 或空白）前的文本作为渠道名；
+ * 纯数字渠道（如 4399）不会被当作序号剔除。
+ */
+function extractChannelToken(line: string): string {
+  let s = String(line || '').trim();
+  if (!s) return '';
+  // 去除“字母+数字”形式的序号前缀（要求其后带空白），避免误删 4399 这类纯数字渠道
+  s = s.replace(/^[A-Za-z]+\d+\s+/, '').trim();
+  if (!s) return '';
+  const token = s.split(/[-_—–－\s]/)[0] || '';
+  return token.trim().toLowerCase();
+}
+
+/**
+ * 逐行分析资源名称，仅识别每行开头的渠道字段。
+ * 相同关键词的正式/旧版资源位视为同一个渠道。
+ */
+function detectChannels(text: string): {
+  keywords: string[];
+  map: Map<string, ChannelOption[]>;
+} {
+  const map = new Map<string, ChannelOption[]>();
+  channelOptions.value.forEach((o) => {
+    const key = o.keyword.toLowerCase();
+    const arr = map.get(key) || [];
+    arr.push(o);
+    map.set(key, arr);
+  });
+
+  const found = new Set<string>();
+  text.split(/\r?\n/).forEach((rawLine) => {
+    const token = extractChannelToken(rawLine);
+    // 仅当行首字段精确匹配某个渠道关键词时才计入，忽略名称中间的“游戏中心/banner/小三套”等
+    if (token && map.has(token)) found.add(token);
+  });
+
+  return { keywords: Array.from(found), map };
+}
+
+/**
+ * 在同一渠道的多个资源位中挑选正式资源位：
+ * 优先排除旧版（名称含“旧”，如 4399渠道资源位(旧)），再优先精确匹配“<关键词>渠道资源位”。
+ */
+function officialOptionFor(opts: ChannelOption[]): string {
+  const nonLegacy = opts.filter((o) => !o.isLegacy);
+  const pool = nonLegacy.length ? nonLegacy : opts;
+  const exact = pool.find((o) => o.name === `${o.keyword}渠道资源位`);
+  return (exact || pool[0]).name;
+}
 
 watch(
   libraryOptions,
@@ -126,6 +235,36 @@ const trimmedLines = computed(() =>
     .map((line) => line.trim())
     .filter((line) => line.length > 0)
 );
+
+/**
+ * 实时识别批量列表文本中的渠道，并自动处理渠道资源位的选择状态：
+ * - 单一渠道：自动选中该渠道的正式资源位；
+ * - 多渠道：不自动选择，提示“检测到多个渠道，请手动选择。”；
+ * - 未识别：不自动选择、不报错，保留当前选择。
+ */
+watch(linesText, (text) => {
+  const { keywords, map } = detectChannels(text);
+  if (keywords.length === 1) {
+    const opts = map.get(keywords[0]);
+    const target = opts && opts.length ? officialOptionFor(opts) : '';
+    // 用户手动改过渠道选择后不再覆盖，只提示检测结果
+    if (target && !manualChannelTouched.value) {
+      selectedLibraries.value = [target];
+      // 自动选中后，定位/滚动到该渠道按钮，确保其在可视区域内
+      scrollChannelIntoView(target);
+      channelTip.value = '';
+    } else if (target) {
+      channelTip.value = `已检测到渠道「${target}」，保留当前手动选择。`;
+    } else {
+      channelTip.value = '';
+    }
+  } else if (keywords.length >= 2) {
+    // 不再清空用户手动选择，仅提示
+    channelTip.value = '检测到多个渠道，请手动选择。';
+  } else {
+    channelTip.value = '';
+  }
+});
 
 const canImport = computed(
   () =>
@@ -212,7 +351,22 @@ function handleBatchImport() {
     isImporting.value = false;
     alert('导入超时未完成，请缩小批量数量后重试，或检查团队库权限。');
   }, 120000);
-  sendMsgToPlugin(MessageType.IMPORT_COMPONENT_BY_UKEY, { groups });
+  sendMsgToPlugin(MessageType.IMPORT_COMPONENT_BY_UKEY, {
+    groups,
+    regionName: currentChannelName(),
+  });
+}
+
+/**
+ * 由当前已选择的渠道资源位推导区域名称：
+ * 取“<关键词>渠道资源位”中的关键词并转小写，例如“VIVO渠道资源位” → “vivo”。
+ */
+function currentChannelName(): string {
+  const first = selectedLibraries.value[0] || '';
+  const keyword = first.includes('渠道资源位')
+    ? first.split('渠道资源位')[0].trim()
+    : first.trim();
+  return keyword.toLowerCase();
 }
 
 function hasSequenceOnlyInput(pool: ComponentCatalogGroup[]) {

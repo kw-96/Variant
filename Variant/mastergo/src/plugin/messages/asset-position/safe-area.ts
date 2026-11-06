@@ -4,6 +4,46 @@
  */
 
 /**
+ * 判断名称是否为安全区图层
+ * - 名称包含 safeArea（不区分大小写）；
+ * - 名称包含“预览”的节点不算。
+ */
+export function isSafeAreaName(name: string): boolean {
+  const text = String(name || '');
+  if (!text || text.indexOf('预览') !== -1) return false;
+  return text.toLowerCase().indexOf('safearea') !== -1;
+}
+
+/**
+ * 递归收集选区内的安全区节点（显隐安全区与置顶共用同一匹配规则）
+ * - 名称命中 isSafeAreaName 即为目标图层；
+ * - 名称包含“预览”的节点及其整个子树跳过。
+ */
+export function collectSafeAreaNodes(nodes: any[]): any[] {
+  const acc: any[] = [];
+  const walk = (node: any) => {
+    if (!node) return;
+    const name = typeof node.name === 'string' ? node.name : '';
+    if (name.indexOf('预览') !== -1) return;
+    if (isSafeAreaName(name)) {
+      acc.push(node);
+      return;
+    }
+    let children: any = null;
+    try {
+      children = node.children;
+    } catch (e) {
+      children = null;
+    }
+    if (children && children.length) {
+      for (let i = 0; i < children.length; i++) walk(children[i]);
+    }
+  };
+  (nodes || []).forEach(walk);
+  return acc;
+}
+
+/**
  * 解析安全区字符串为对象
  * 支持格式：left:10,top:20,right:10,bottom:20
  * @param str 安全区字符串
@@ -125,15 +165,17 @@ export function setSafeArea(frame: any, width: number, height: number, safeArea?
  */
 export function bringSafeAreasToTop(frame: any): void {
   if (!frame || !frame.children) return;
-  
-  // 找到所有安全区矩形（名称以 safeArea- 开头）
-  const safeAreaRectangles = frame.children.filter((child: any) => 
-    child.name && child.name.startsWith('safeArea-')
-  );
-  
+
+  // 与显隐安全区共用同一名称匹配规则（只看直接子级，避免把嵌套安全区提出父级）
+  const safeAreaRectangles = frame.children.filter((child: any) => isSafeAreaName(child?.name));
+
   // 将所有安全区矩形移到最上层（移动到 children 数组末尾）
   safeAreaRectangles.forEach((rectangle: any) => {
-    frame.appendChild(rectangle);
+    try {
+      frame.appendChild(rectangle);
+    } catch (e) {
+      // 忽略：节点可能已被移除
+    }
   });
 }
 

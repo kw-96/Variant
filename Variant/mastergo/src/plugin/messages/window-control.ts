@@ -41,11 +41,11 @@ function expandHandler() {
   try {
     // 展开并恢复到之前的宽度（缺省 400），保持右上角为基点
     const vp = (mg as any).ui?.viewport;
-    const oldWidth = vp?.width || 400;
+    const oldWidth = vp?.width || 405;
     const oldX = vp?.x || 0;
     const oldY = vp?.y || 0;
-    const targetHeight = previousHeight && previousHeight > 0 ? previousHeight : (vp?.height || 667);
-    const targetWidth = previousWidth && previousWidth > 0 ? previousWidth : 400;
+    const targetHeight = previousHeight && previousHeight > 0 ? previousHeight : (vp?.height || 680);
+    const targetWidth = previousWidth && previousWidth > 0 ? previousWidth : 405;
     if ((mg as any).ui?.resize) {
       (mg as any).ui.resize(targetWidth, targetHeight);
     }
@@ -67,5 +67,22 @@ export const collapseWindow = {
 export const expandWindow = {
   type: MessageType.EXPAND_WINDOW,
   handler: expandHandler,
+};
+
+function resizeHandler(data?: { width?: number; height?: number }) {
+  try {
+    const width = Math.max(300, Math.floor(data?.width || 0));
+    const height = Math.max(320, Math.floor(data?.height || 0));
+    if (width && height && (mg as any).ui?.resize) {
+      (mg as any).ui.resize(width, height);
+    }
+  } catch (error) {
+    console.error('调整窗口大小失败:', error);
+  }
+}
+
+export const resizeWindow = {
+  type: MessageType.RESIZE_WINDOW,
+  handler: resizeHandler,
 };
 

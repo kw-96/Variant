@@ -18,7 +18,6 @@ import getFrame from './messages/asset-position/get-frame';
 import importImages from './messages/asset-position/import-images';
 import exportImages from './messages/asset-position/export-images';
 import toggleSafeArea from './messages/asset-position/toggle-safe-area';
-import getSafeAreaStatus from './messages/asset-position/get-safe-area-status';
 
 // 工具箱功能模块 - 快捷操作
 import autoLayout from './messages/toolbox/quick-actions/auto-layout';
@@ -26,6 +25,7 @@ import autoAddComponent from './messages/toolbox/quick-actions/auto-add-componen
 import roundToInteger from './messages/toolbox/quick-actions/round-to-integer';
 import simpleConstraint from './messages/toolbox/quick-actions/simple-constraint';
 import batchConvertToComponent from './messages/toolbox/quick-actions/batch-convert-to-component';
+import batchWatermark from './messages/toolbox/quick-actions/batch-watermark';
 
 // 工具箱功能模块 - 实用工具
 import batchButtonConvert from './messages/toolbox/utility-tools/convert-to-data-flow/batch-button-convert';
@@ -34,6 +34,7 @@ import batchExtendUpload from './messages/toolbox/utility-tools/batch-extend-upl
 import batchExtendProcess from './messages/toolbox/utility-tools/batch-extend-process';
 import batchRename from './messages/toolbox/utility-tools/batch-rename';
 import batchSwitchInstance from './messages/toolbox/utility-tools/batch-switch-instance';
+import instanceFit from './messages/toolbox/utility-tools/instance-fit';
 import dataFlowConvert from './messages/toolbox/utility-tools/convert-to-data-flow/data-flow-convert';
 import dataFlowProcess from './messages/toolbox/utility-tools/data-flow-process';
 
@@ -41,15 +42,17 @@ import dataFlowProcess from './messages/toolbox/utility-tools/data-flow-process'
 import getComponentLibrary from './messages/component-library/get-component-library';
 import importComponentByUkey from './messages/component-library/import-component-by-ukey';
 
-// H5切图功能模块
-import oneClickCut from './messages/h5-cut/one-click-cut';
-import oneClickExpand from './messages/h5-cut/one-click-expand';
-import genExpandPreview from './messages/h5-cut/gen-expand-preview';
-import autoGenerateButtons from './messages/h5-cut/auto-generate-buttons';
-import genButtonPreview from './messages/h5-cut/gen-button-preview';
+// H5 功能模块（一键抠图）
+import cutout from './messages/h5-cut/cutout';
+
+// 美术工具（由 MG插件移植）
+import artTools from './messages/art-tools';
+
+// PSD 转换（由独立插件 psd-2-mastergo 迁移）
+import psdConvert from './messages/psd/psd-convert';
 
 // 窗口控制功能模块
-import { collapseWindow, expandWindow } from './messages/window-control';
+import { collapseWindow, expandWindow, resizeWindow } from './messages/window-control';
 
 /**
  * 读取当前用户信息；部分环境在插件刚启动时会短暂返回 Anonymous，做一次短轮询兜底。
@@ -71,48 +74,52 @@ async function resolveCurrentUserInfo() {
   return { currentUserId: '', currentUserName: 'Anonymous' };
 }
 
-// 注册所有消息处理器
-const messages = [
+// 注册所有消息处理器（部分模块导出处理器数组，concat 统一展开一层）
+const messages: any[] = ([] as any[]).concat(
   // 基础设施
   clientStorage,
   showNotify,
-  
+
   // 资源位
   createFrames,
   getFrame,
   importImages,
   exportImages,
   toggleSafeArea,
-  getSafeAreaStatus,
-  
+
   // 工具箱
   autoLayout,
   autoAddComponent,
   roundToInteger,
   simpleConstraint,
   batchConvertToComponent,
+  batchWatermark,
   batchButtonConvert,
   batchButtonGenerate,
   batchExtendUpload,
-  ...(Array.isArray(batchExtendProcess) ? batchExtendProcess : [batchExtendProcess]),
+  batchExtendProcess,
   batchRename,
-  ...(Array.isArray(batchSwitchInstance) ? batchSwitchInstance : [batchSwitchInstance]),
+  batchSwitchInstance,
+  instanceFit,
   dataFlowConvert,
   dataFlowProcess,
   getComponentLibrary,
   importComponentByUkey,
-  
-  // H5切图
-  oneClickCut,
-  oneClickExpand,
-  genExpandPreview,
-  autoGenerateButtons,
-  genButtonPreview,
-  
+
+  // H5（一键抠图）
+  cutout,
+
   // 窗口控制
   collapseWindow,
   expandWindow,
-];
+  resizeWindow,
+
+  // 美术工具
+  artTools,
+
+  // PSD 转换
+  psdConvert,
+);
 
 // Runs this code if the plugin is run in MasterGo
 // MasterGo 会自动注入 __html__ 全局变量，包含 manifest.json 中 ui 字段指向的文件内容
@@ -177,27 +184,21 @@ try {
     // UI 未初始化，等待打开面板时再初始化
   }
 
+  const pushSelection = () => {
+    const currentPage = (mg as any).document?.currentPage;
+    const selection: any[] = currentPage?.selection || [];
+    // 只传轻量字段，避免每次选择变化都序列化整棵节点
+    sendMsgToUI(
+      MessageType.SELECTION_CHANGE,
+      selection.map((node: any) => ({ id: node.id, type: node.type, name: node.name }))
+    );
+  };
+
   // 监听页面变化事件
-  mg.on('currentpagechange', () => {
-    const currentPage = (mg as any).document?.currentPage;
-    if (currentPage) {
-      sendMsgToUI(MessageType.SELECTION_CHANGE, currentPage.selection || []);
-    } else {
-      sendMsgToUI(MessageType.SELECTION_CHANGE, []);
-    }
-  });
-  
+  mg.on('currentpagechange', pushSelection);
+
   // 监听选择变化事件
-  mg.on('selectionchange', () => {
-    const currentPage = (mg as any).document?.currentPage;
-    sendMsgToUI(MessageType.SELECTION_CHANGE, currentPage ? currentPage.selection || [] : []);
-    
-    // 当选择变化时，自动获取安全区状态
-    const getSafeAreaStatusHandler = messages.find((m: any) => m.type === MessageType.GET_SAFE_AREA_STATUS);
-    if (getSafeAreaStatusHandler) {
-      (getSafeAreaStatusHandler.handler as any)();
-    }
-  });
+  mg.on('selectionchange', pushSelection);
   
   // 处理菜单命令的通用函数
   const handleMenuCommand = (payload: any) => {
@@ -218,17 +219,17 @@ try {
       'toggle-safe-area': MessageType.TOGGLE_SAFE_AREA,
     };
 
-    const messageType = commandToMessageType[command];
-    if (!messageType) {
+    // 直接点击插件（无子菜单）或「打开面板」命令：打开面板
+    if (command === 'open' || command === '') {
+      // 打开面板命令
+      mg.showUI(__html__, { width: 405, height: 680 });
+      // 初始化 UI 消息处理器（如果尚未初始化）
+      initializeUIMessageHandler();
       return;
     }
 
-    // 只有 "打开面板" 命令才打开面板，其他命令只执行功能，不打开面板
-    if (command === 'open') {
-      // 打开面板命令
-      mg.showUI(__html__);
-      // 初始化 UI 消息处理器（如果尚未初始化）
-      initializeUIMessageHandler();
+    const messageType = commandToMessageType[command];
+    if (!messageType) {
       return;
     }
 
@@ -247,22 +248,8 @@ try {
   // 监听菜单命令（MasterGo 官方支持 run 事件）
   mg.on('run', handleMenuCommand);
 
-  // 监听主题变化事件
-  mg.on('themechange', (theme: string) => {
-    mg.ui.postMessage({ type: 'THEME_CHANGE', theme });
-  });
-
-  // 立即发送初始主题状态
-  const initialTheme = (mg as any).themeColor || 'light';
-  mg.ui.postMessage({ type: 'THEME_CHANGE', theme: initialTheme });
-  
   // 立即发送初始选择状态
-  const currentPage = (mg as any).document?.currentPage;
-  if (currentPage) {
-    sendMsgToUI(MessageType.SELECTION_CHANGE, currentPage.selection || []);
-  } else {
-    sendMsgToUI(MessageType.SELECTION_CHANGE, []);
-  }
+  pushSelection();
   
 } catch (error) {
   console.error('MasterGo plugin initialization error:', error);

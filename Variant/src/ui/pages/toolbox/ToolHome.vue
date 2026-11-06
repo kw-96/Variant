@@ -49,14 +49,17 @@ const quickActions = [
   { key: 'round-to-integer', label: '整数像素' },
   { key: 'simple-constraint', label: '简单约束' },
   { key: 'batch-convert-to-component', label: '批量组件' },
+  { key: 'batch-watermark', label: '批量水印' },
 ];
 
 const utilityTools = [
-  { key: 'batch-extend', label: '批量延展' },
-  { key: 'batch-button', label: '批量按钮' },
-  { key: 'data-flow', label: '数据流' },
+  { key: 'batch-output', label: '批量产出' },
   { key: 'batch-rename', label: '批量命名' },
+  { key: 'common-replace', label: '通用替换' },
+  { key: 'instance-fit', label: '实例适配' },
   { key: 'batch-switch-instance', label: '批量切换实例' },
+  { key: 'cutout', label: '一键抠图' },
+  { key: 'psd', label: 'PSD转换' },
 ];
 </script>
 

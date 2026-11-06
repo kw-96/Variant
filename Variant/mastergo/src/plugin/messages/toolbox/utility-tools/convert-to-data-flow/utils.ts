@@ -1,30 +1,7 @@
 /**
  * 转为数据流的公共工具函数
  */
-
-// 收集文本节点
-export function collectTextNodes(node: any): any[] {
-  const result: any[] = [];
-  if (!node) return result;
-
-  const walk = (target: any) => {
-    if (!target) return;
-
-    if (target.type === 'TEXT') {
-      result.push(target);
-      return;
-    }
-
-    if (!target.children || target.children.length === 0) return;
-
-    for (let i = 0; i < target.children.length; i++) {
-      walk(target.children[i]);
-    }
-  };
-
-  walk(node);
-  return result;
-}
+import { collectTextNodes } from '../../../../utils/node-utils';
 
 // 创建自动布局容器
 export function createAutoLayoutContainer(instance: any, currentPage: any, viewportCenter?: { x: number; y: number }) {

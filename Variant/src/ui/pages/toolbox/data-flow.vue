@@ -1,95 +1,73 @@
 <template>
-  <div :class="$style.container">
-    <!-- 标题栏 -->
-    <div :class="$style.header">
+  <div :class="[$style.wrapper, { [$style.embedded]: embedded }]">
+    <!-- 标题栏（独立打开时显示） -->
+    <div v-if="!embedded" :class="$style.header">
       <button :class="$style.backButton" @click="handleBack" title="返回">
         <van-icon name="arrow-left" :class="$style.backIcon" />
       </button>
       <div :class="$style.title">数据流</div>
     </div>
+
     <!-- 页面内容 -->
-    <div :class="$style.content">
-      <div :class="$style.tip">
-        请先将模板转为组件（快捷键：Ctrl+Alt+K）
-      </div>
+    <div class="art-page">
+      <div class="art-note">请先将模板转为组件（快捷键 Ctrl+Alt+K），再转为数据流</div>
 
-      <van-button
-        type="primary"
-        :class="$style.actionButton"
-        @click="handleConvert"
-      >
-        转为数据流
-      </van-button>
+      <button class="art-btn-ghost" type="button" @click="handleConvert">转为数据流</button>
 
-      <div :class="$style.arrow">
-        <van-icon name="arrow-down" />
-      </div>
-
-      <!-- 切换按钮 -->
-      <div :class="$style.switchContainer">
-        <van-button
-          :type="inputMode === 'table' ? 'primary' : 'default'"
-          :class="$style.switchButton"
+      <div class="art-seg">
+        <div
+          class="art-seg-item"
+          :class="{ active: inputMode === 'table' }"
           @click="inputMode = 'table'"
         >
           表格上传
-        </van-button>
-        <van-button
-          :type="inputMode === 'text' ? 'primary' : 'default'"
-          :class="$style.switchButton"
+        </div>
+        <div
+          class="art-seg-item"
+          :class="{ active: inputMode === 'text' }"
           @click="inputMode = 'text'"
         >
           文本输入
-        </van-button>
+        </div>
       </div>
 
-      <!-- 输入区域容器（固定高度，保持布局稳定） -->
-      <div :class="$style.inputContainer">
-        <!-- 表格上传区域 -->
-        <div v-if="inputMode === 'table'" :class="$style.uploadSection">
-          <input
-            ref="fileInputRef"
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            :class="$style.fileInput"
-            @change="handleFileChange"
-          />
-          <div 
-            :class="[$style.uploadArea, { [$style.dragover]: isDragging }]" 
-            @click="triggerFileInput"
-            @dragover.prevent="handleDragOver"
-            @dragleave="handleDragLeave"
-            @drop.prevent="handleDrop"
-          >
-            <van-icon name="plus" :class="$style.uploadIcon" />
-            <div :class="$style.uploadText">
-              {{ fileList.length > 0 ? fileList[0].fileName : '上传表格文件' }}
-            </div>
-            <div :class="$style.uploadHint">支持点击或拖拽上传 .xlsx / .xls / .csv</div>
+      <!-- 表格上传区域 -->
+      <template v-if="inputMode === 'table'">
+        <input
+          ref="fileInputRef"
+          type="file"
+          accept=".xlsx,.xls,.csv"
+          :class="$style.fileInput"
+          @change="handleFileChange"
+        />
+        <div
+          :class="[$style.uploadArea, { [$style.dragover]: isDragging }]"
+          @click="triggerFileInput"
+          @dragover.prevent="handleDragOver"
+          @dragleave="handleDragLeave"
+          @drop.prevent="handleDrop"
+        >
+          <van-icon name="plus" :class="$style.uploadIcon" />
+          <div :class="$style.uploadText">
+            {{ fileList.length > 0 ? fileList[0].fileName : '上传表格文件' }}
           </div>
+          <div :class="$style.uploadHint">支持点击或拖拽上传 .xlsx / .xls / .csv</div>
         </div>
+      </template>
 
-        <!-- 文本输入框 -->
-        <div v-else :class="$style.textInputSection">
-          <TabTextarea
-            v-model="inputValue"
-            type="vant"
-            :class="$style.inputField"
-            :rows="6"
-            placeholder="手动输入请用[tab]隔开行内数据，[回车]换行"
-            :show-word-limit="true"
-          />
-        </div>
-      </div>
+      <!-- 文本输入 -->
+      <template v-else>
+        <label class="art-label">每行一条数据，列之间用 Tab 分隔，首行为表头</label>
+        <TabTextarea
+          v-model="inputValue"
+          type="native"
+          :class="$style.textInput"
+          min-height="180px"
+          placeholder="首行为表头，用[tab]隔开列；回车换行输入下一条数据"
+        />
+      </template>
 
-      <van-button
-        block
-        type="primary"
-        :class="$style.fillButton"
-        @click="handleFill"
-      >
-        开始数据流
-      </van-button>
+      <button class="art-btn" type="button" @click="handleFill">开始数据流</button>
     </div>
   </div>
 </template>
@@ -107,6 +85,9 @@ const DATA_FLOW_PROCESS = MessageType.DATA_FLOW_PROCESS;
 const emit = defineEmits<{
   back: [];
 }>();
+
+// 内嵌到「批量产出」时隐藏自身头部并解除绝对定位
+defineProps<{ embedded?: boolean }>();
 
 // 输入模式：'table' 表格上传，'text' 文本输入
 const inputMode = ref<'table' | 'text'>('table');
@@ -363,7 +344,7 @@ function handleFill() {
 </script>
 
 <style lang="less" module>
-.container {
+.wrapper {
   position: absolute;
   top: 0;
   left: 0;
@@ -374,6 +355,18 @@ function handleFill() {
   background-color: var(--bg-primary);
   z-index: 10;
   overflow: hidden;
+}
+
+.embedded {
+  position: relative;
+  top: auto;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  z-index: auto;
+  background-color: transparent;
 }
 
 .header {
@@ -399,12 +392,12 @@ function handleFill() {
   color: var(--text-primary);
   cursor: pointer;
   transition: all 0.2s;
-  
+
   &:hover {
     background-color: var(--input-bg);
     border-color: var(--button-primary-bg);
   }
-  
+
   &:active {
     background-color: var(--bg-primary);
   }
@@ -422,153 +415,57 @@ function handleFill() {
   color: var(--text-primary);
 }
 
-.content {
-  flex: 1;
-  width: 100%;
-  max-width: 360px;
-  margin: 0 auto;
-  padding: 32px;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-start;
-  overflow-y: auto;
-  box-sizing: border-box;
-}
-
-.tip {
-  text-align: center;
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin-bottom: 10px;
-  margin-top: 0;
-}
-
-.actionButton {
-  align-self: center;
-  width: 160px;
-  margin-bottom: 6px;
-  border-radius: 6px;
-  height: 38px;
-  font-size: 14px;
-  line-height: 36px;
-}
-
-.arrow {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: var(--text-secondary);
-  font-size: 18px;
-  margin-bottom: 16px;
-}
-
-.switchContainer {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.switchButton {
-  flex: 1;
-  border-radius: 6px;
-  height: 36px;
-  font-size: 14px;
-}
-
-.inputContainer {
-  min-height: 220px;
-  height: 220px;
-  margin-bottom: 16px;
-  position: relative;
-}
-
-.uploadSection {
-  width: 100%;
-  height: 100%;
-}
-
 .fileInput {
   display: none;
 }
 
+/* 表格上传区（沿用 art 设计系统配色） */
 .uploadArea {
-  width: 100%;
-  height: 220px;
-  min-height: 220px;
+  flex: 1 1 auto;
+  min-height: 160px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border: 2px dashed var(--border-color);
+  border: 2px dashed var(--ap-input-border);
   border-radius: 8px;
-  background-color: var(--bg-secondary);
-  transition: all 0.3s;
+  background-color: var(--ap-input-bg);
+  transition: border-color 0.2s ease, background-color 0.2s ease;
   cursor: pointer;
   box-sizing: border-box;
-  
+
   &:hover {
-    border-color: var(--button-primary-bg);
-    background-color: var(--input-bg);
+    border-color: var(--ap-blue);
   }
-  
+
   &.dragover {
-    border-color: var(--button-primary-bg);
-    background-color: var(--input-bg);
-    transform: scale(1.02);
+    border-color: var(--ap-blue);
+    background-color: var(--ap-dim-bg);
   }
 }
 
 .uploadIcon {
-  font-size: 32px;
-  color: var(--text-secondary);
+  font-size: 30px;
+  color: var(--ap-text2);
   margin-bottom: 8px;
 }
 
 .uploadText {
-  font-size: 14px;
-  color: var(--text-primary);
+  font-size: 13px;
+  color: var(--ap-strong);
   margin-bottom: 4px;
   font-weight: 500;
 }
 
 .uploadHint {
   font-size: 12px;
-  color: var(--text-secondary);
-  opacity: 0.7;
+  color: var(--ap-text2);
 }
 
-.textInputSection {
-  width: 100%;
-  height: 220px;
-  min-height: 220px;
+/* 文本输入（原生 textarea，撑满剩余空间） */
+.textInput {
+  flex: 1 1 auto;
+  min-height: 180px;
 }
-
-.fillButton {
-  margin-top: auto;
-  margin-bottom: 16px;
-  border-radius: 6px;
-  height: 42px;
-  font-size: 15px;
-}
-
-.inputField {
-  height: 100%;
-  
-  :global(.van-field__body) {
-    height: 100%;
-  }
-  
-  :global(.van-field__control) {
-    height: 220px;
-    min-height: 220px;
-    max-height: 220px;
-  }
-  
-  :global(textarea) {
-    height: 100%;
-  }
-}
-
 </style>
 

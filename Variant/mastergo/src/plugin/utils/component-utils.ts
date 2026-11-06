@@ -2,6 +2,7 @@
  * 组件克隆与布局工具
  * 提供统一的将模板节点放入画板的能力
  */
+import { resizeNode } from './node-utils';
 
 /**
  * 克隆节点为实例
@@ -19,30 +20,6 @@ function createInstanceFromTemplate(template: any): any | null {
   }
 
   return template.clone();
-}
-
-/**
- * 调整节点尺寸
- */
-function resizeNode(node: any, width: number, height: number) {
-  if (!node) return;
-
-  if ('constrainProportions' in node) {
-    (node as any).constrainProportions = false;
-  }
-
-  if (typeof node.resizeWithoutConstraints === 'function') {
-    node.resizeWithoutConstraints(width, height);
-    return;
-  }
-
-  if (typeof node.resize === 'function') {
-    node.resize(width, height);
-    return;
-  }
-
-  node.width = width;
-  node.height = height;
 }
 
 /**
@@ -64,7 +41,7 @@ export function placeTemplateInstance(
   if (!instance) return null;
 
   frame.appendChild(instance);
-  resizeNode(instance, width, height);
+  resizeNode(instance, width, height, true);
 
   instance.x = 0;
   instance.y = 0;

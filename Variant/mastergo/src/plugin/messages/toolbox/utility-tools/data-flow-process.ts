@@ -3,6 +3,7 @@
  * 根据表格数据批量克隆并填充组件属性或文本内容
  */
 import { MessageType } from '../../../../../../src/messages';
+import { collectTextNodes } from '../../../utils/node-utils';
 
 interface DataFlowData {
   headers: string[]; // 表头数组
@@ -29,32 +30,6 @@ function findNodeByName(node: any, name: string): any | null {
   }
 
   return null;
-}
-
-/**
- * 收集节点中的所有文本节点
- */
-function collectTextNodes(node: any): any[] {
-  const result: any[] = [];
-  if (!node) return result;
-
-  const walk = (target: any) => {
-    if (!target) return;
-
-    if (target.type === 'TEXT') {
-      result.push(target);
-      return;
-    }
-
-    if (!target.children || target.children.length === 0) return;
-
-    for (let i = 0; i < target.children.length; i++) {
-      walk(target.children[i]);
-    }
-  };
-
-  walk(node);
-  return result;
 }
 
 /**

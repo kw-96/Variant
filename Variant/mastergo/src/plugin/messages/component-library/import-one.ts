@@ -55,20 +55,3 @@ export function createInstanceFromImported(
     return { instance: null, error: parseErrorReason(error) };
   }
 }
-
-/**
- * 按类型导入单个团队库组件并创建实例。
- * COMPONENT 走 importComponentByKeyAsync；COMPONENT_SET 交由组件集流程处理。
- */
-export async function importOneComponentInstance(
-  item: IImportItem
-): Promise<{ instance: any | null; skipped?: boolean; error?: string }> {
-  const imported = await importComponentNode(item);
-  if (imported.skipped) {
-    return { instance: null, skipped: true };
-  }
-  if (!imported.componentNode) {
-    return { instance: null, error: imported.error };
-  }
-  return createInstanceFromImported(imported.componentNode);
-}
